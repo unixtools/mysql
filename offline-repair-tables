@@ -1,0 +1,10 @@
+#!/bin/sh
+cd /local/mysql/server
+
+./bin/mysqladmin \
+        --defaults-extra-file=/local/mysql/mysql.conf \
+        shutdown
+
+./bin/myisamchk \
+	--defaults-extra-file=/local/mysql/mysql.conf \
+	--force -o -e data/*/*.MYI

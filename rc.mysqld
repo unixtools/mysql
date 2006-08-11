@@ -1,0 +1,22 @@
+#!/bin/sh
+cd /local/mysql/server
+
+./bin/mysqladmin \
+	--defaults-extra-file=/local/mysql/mysql.conf \
+	shutdown
+
+if [ ! -e /local/mysql/data/mysql/host.MYD ]; then
+./scripts/mysql_install_db \
+        --defaults-extra-file=/local/mysql/mysql.conf \
+        --basedir=/local/mysql/server \
+        --user=mysql \
+        --datadir=/local/mysql/data 
+fi
+
+./bin/mysqld_safe \
+        --defaults-extra-file=/local/mysql/mysql.conf \
+        --basedir=/local/mysql/server \
+        --user=mysql \
+        --datadir=/local/mysql/data \
+        2>&1 | /usr/bin/logger -t MYSQL &
+
