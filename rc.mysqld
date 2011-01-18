@@ -18,5 +18,7 @@ fi
         --basedir=/local/mysql/server \
         --user=mysql \
         --datadir=/local/mysql/data \
-        2>&1 | /usr/bin/logger -t MYSQL &
+		--skip-log-error \
+		--syslog \
+		2>&1 | /usr/bin/logger -t MYSQL &
 
