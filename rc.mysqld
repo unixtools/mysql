@@ -5,6 +5,8 @@ if [ ! -e /local/mysql/mysql.conf ]; then
 	cp /local/mysql/mysql-base.conf /local/mysql/mysql.conf
 fi
 
+mkdir -p /local/mysql/data
+
 ./bin/mysqladmin \
         --defaults-extra-file=/local/mysql/mysql.conf \
         shutdown
