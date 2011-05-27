@@ -1,0 +1,4 @@
+#!/bin/sh -x
+
+cd tar
+wget http://www.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.12-linux2.6-x86_64.tar.gz/from/http://mysql.mirrors.hoobly.com/
