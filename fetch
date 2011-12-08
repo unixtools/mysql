@@ -1,4 +1,14 @@
-#!/bin/sh -x
+#!/usr/bin/perl
 
-cd tar
-wget http://www.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.12-linux2.6-x86_64.tar.gz/from/http://mysql.mirrors.hoobly.com/
+my $cpu = `uname -p`;
+
+chdir("tar") || die;
+
+if ( $cpu =~ /x86_64/ )
+{
+	system("wget", "http://www.mysql.com/get/Downloads/MySQL-5.5/MySQL-5.5.19-1.linux2.6.x86_64.tar/from/http://mirror.services.wisc.edu/mysql/");
+}
+else
+{
+	system("wget", "http://www.mysql.com/get/Downloads/MySQL-5.5/MySQL-5.5.19-1.linux2.6.i386.tar/from/http://mirror.services.wisc.edu/mysql/");
+}
