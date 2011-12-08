@@ -7,7 +7,7 @@ cd /local/mysql/server || echo "Failed to cd to server dir" || exit
 if [ ! -e /local/mysql/mysql.conf ]; then
 	cp /local/mysql/mysql-base.conf /local/mysql/mysql.conf
 fi
-
+cp /local/mysql/mysql.conf /etc/my.cnf
 
 mkdir -p /local/mysql/data
 
