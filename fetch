@@ -4,11 +4,11 @@ my $cpu = `uname -p`;
 
 chdir("tar") || die;
 
-if ( $cpu =~ /x86_64/ )
-{
-	system("wget", "http://www.mysql.com/get/Downloads/MySQL-5.5/MySQL-5.5.19-1.linux2.6.x86_64.tar/from/http://mirror.services.wisc.edu/mysql/");
+if ( $cpu =~ /x86_64/ ) {
+    system( "wget",
+        "http://www.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.19-linux2.6-x86_64.tar.gz/from/http://mysql.he.net/" );
 }
-else
-{
-	system("wget", "http://www.mysql.com/get/Downloads/MySQL-5.5/MySQL-5.5.19-1.linux2.6.i386.tar/from/http://mirror.services.wisc.edu/mysql/");
+else {
+    system( "wget",
+        "http://www.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.19-linux2.6-i686.tar.gz/from/http://mysql.he.net/" );
 }
