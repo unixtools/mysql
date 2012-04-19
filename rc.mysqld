@@ -1,6 +1,7 @@
 #!/bin/sh
 
 chown -R mysql:mysql /local/mysql
+chown -R mysql:mysql /var/lib/mysql
 
 cd /local/mysql/server || echo "Failed to cd to server dir" || exit
 
