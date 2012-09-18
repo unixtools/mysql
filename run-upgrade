@@ -1,12 +1,12 @@
 #!/bin/sh -x
 
+cd /local/mysql/server
+
 PATH=/local/mysql/server/bin:/usr/bin:$PATH
-cd /local/mysql
 
 /local/mysql/setup-local-dirs
 
 /local/mysql/rc.mysqld
 sleep 5
 
-cd /local/mysql/server
-./mysql_upgrade --datadir=/local/mysql/data 
+mysql_upgrade
