@@ -30,6 +30,11 @@ chown -R mysql:mysql /var/lib/mysql
 rm -f /local/mysql/server
 ln -s /local/mysql/$PERCONA_DIR /local/mysql/server
 
+#
+if [ ! -e /local/mysql/mysql.conf ]; then
+	cp /local/mysql/mysql-base.conf /local/mysql/mysql.conf
+fi
+
 # Replace systemwide client config file
 rm -f /etc/my.cnf
 cp /local/mysql/client.conf /etc/my.cnf

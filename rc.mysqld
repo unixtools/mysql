@@ -1,15 +1,18 @@
-#!/bin/sh
-cd /local/mysql/server
+#!/bin/sh -x
+cd /local/mysql
 
 # Replace systemwide client config file
 rm -f /etc/my.cnf
 cp /local/mysql/client.conf /etc/my.cnf
 chown root:root /etc/my.cnf
 
+if [ ! -e /local/mysql/mysql.conf ]; then
+    cp /local/mysql/mysql-base.conf /local/mysql/mysql.conf
+	chown mysql:mysql /local/mysql/mysql.conf
+fi
+
 # Shut down existing instance if any
-./bin/mysqladmin \
-	--defaults-extra-file=/local/mysql/mysql.conf \
-	shutdown
+./bin/mysqladmin shutdown
 
 # Create db if not present
 if [ ! -e /local/mysql/data/mysql/host.MYD ]; then
