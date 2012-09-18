@@ -1,16 +1,25 @@
 #!/bin/sh
 cd /local/mysql/server
 
+# Replace systemwide client config file
+rm -f /etc/my.cnf
+cp /local/mysql/client.conf /etc/my.cnf
+chown root:root /etc/my.cnf
+
+# Shut down existing instance if any
 ./bin/mysqladmin \
 	--defaults-extra-file=/local/mysql/mysql.conf \
 	shutdown
 
+# Create db if not present
 if [ ! -e /local/mysql/data/mysql/host.MYD ]; then
-./scripts/mysql_install_db \
+	./scripts/mysql_install_db \
         --defaults-extra-file=/local/mysql/mysql.conf \
         --basedir=/local/mysql/server \
         --user=mysql \
         --datadir=/local/mysql/data 
+
+	/local/mysql/run-upgrade
 fi
 
 ./bin/mysqld_safe \
@@ -18,7 +27,5 @@ fi
         --basedir=/local/mysql/server \
         --user=mysql \
         --datadir=/local/mysql/data \
-		--skip-log-error \
-		--syslog \
-		2>&1 | /usr/bin/logger -t MYSQL &
+        2>&1 | /usr/bin/logger -t MYSQL &
 

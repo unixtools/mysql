@@ -1,0 +1,41 @@
+#!/bin/sh -x
+
+svn upgrade /local/mysql
+svn update /local/mysql
+
+PERCONA_DIR=Percona-Server-5.5.27-rel28.1-296.Linux.x86_64
+
+PERCONA_DL=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/Percona-Server-5.5.27-rel28.1-296.Linux.x86_64.tar.gz
+
+PERCONA_TAR=Percona-Server-5.5.27-rel28.1-296.Linux.x86_64.tar.gz
+
+if [ ! -d "/local/mysql/tar" ]; then
+	mkdir -p /local/mysql/tar
+fi
+
+if [ ! -e "/local/mysql/tar/$PERCONA_TAR" ]; then
+	wget -O /local/mysql/tar/$PERCONA_TAR $PERCONA_DL
+fi
+
+if [ ! -d /local/mysql/$PERCONA_DIR ]; then
+cd /local/mysql
+gtar -xzf tar/$PERCONA_TAR
+fi
+
+mkdir -p /local/mysql/data
+
+mkdir -p /var/lib/mysql
+chown -R mysql:mysql /var/lib/mysql
+
+rm -f /local/mysql/server
+ln -s /local/mysql/$PERCONA_DIR /local/mysql/server
+
+# Replace systemwide client config file
+rm -f /etc/my.cnf
+cp /local/mysql/client.conf /etc/my.cnf
+chown root:root /etc/my.cnf
+
+rm -f /home/local/adm/rc-start/rc.*.mysql
+ln -s /local/mysql/rc.mysqld /home/local/adm/rc-start/rc.400.mysql
+
+chown -R mysql:mysql /local/mysql
