@@ -1,35 +1,37 @@
-#!/bin/sh
+#!/bin/sh -x
 
-chown -R mysql:mysql /local/mysql
-chown -R mysql:mysql /var/lib/mysql
+cd /local/mysql/server
 
-cd /local/mysql/server || echo "Failed to cd to server dir" || exit
+PATH=/local/mysql/server/bin:$PATH
+
+# Replace systemwide client config file
+rm -f /etc/my.cnf
+cp /local/mysql/client.conf /etc/my.cnf
+chown root:root /etc/my.cnf
 
 if [ ! -e /local/mysql/mysql.conf ]; then
-	cp /local/mysql/mysql-base.conf /local/mysql/mysql.conf
+    cp /local/mysql/mysql-base.conf /local/mysql/mysql.conf
+	chown mysql:mysql /local/mysql/mysql.conf
 fi
-cp /local/mysql/mysql.conf /etc/my.cnf
 
-mkdir -p /local/mysql/data
+# Shut down existing instance if any
+mysqladmin shutdown
 
-./bin/mysqladmin \
-        --defaults-extra-file=/local/mysql/mysql.conf \
-        shutdown
-
+# Create db if not present
 if [ ! -e /local/mysql/data/mysql/host.MYD ]; then
-./scripts/mysql_install_db \
+	/local/mysql/server/scripts/mysql_install_db \
         --defaults-extra-file=/local/mysql/mysql.conf \
         --basedir=/local/mysql/server \
         --user=mysql \
         --datadir=/local/mysql/data 
+
+	/local/mysql/run-upgrade
 fi
 
-./bin/mysqld_safe \
+mysqld_safe \
         --defaults-extra-file=/local/mysql/mysql.conf \
         --basedir=/local/mysql/server \
         --user=mysql \
         --datadir=/local/mysql/data \
-        --skip-log-error \
-        --syslog \
         2>&1 | /usr/bin/logger -t MYSQL &
 
