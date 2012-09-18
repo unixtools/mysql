@@ -1,6 +1,6 @@
 #!/bin/sh -x
 
-svn upgrade /local/mysql
+svn upgrade /local/mysql >/dev/null 2>/dev/null
 svn update /local/mysql
 
 PERCONA_DIR=Percona-Server-5.5.27-rel28.1-296.Linux.x86_64
