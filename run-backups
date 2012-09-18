@@ -1,0 +1,29 @@
+#!/bin/sh 
+
+TSTAMP=`date "+%Y%m%d%H%M"`
+YR=`date "+%Y"`
+MO=`date "+%m"`
+DY=`date "+%d"`
+BASE=/local/mysql-db-backups
+
+PATH=/local/mysql/server/bin:$PATH
+
+/local/mysql/clean-backups
+mkdir -p $BASE/data
+
+for f in /local/mysql/data/*; do
+        if [ -d $f ]; then
+                db=`basename $f`
+
+                mkdir -p $BASE/latest
+                mysqldump --skip-opt $db \
+                        | gzip -v1 -c - > $BASE/latest/$db.gz
+
+                mkdir -p $BASE/data/$db/$YR/$MO/$DY 
+                cp $BASE/latest/$db.gz $BASE/data/$db/$YR/$MO/$DY/$TSTAMP.gz
+        fi
+done
+
+/local/mysql/clean-backups
+
+mysqlcheck -A -a 

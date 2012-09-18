@@ -1,0 +1,7 @@
+#!/bin/sh -x
+
+touch /local/mysql-db-backups
+find /local/mysql-db-backups/data/ -type f -mtime +5 -print -exec rm -f {} \;
+
+mkdir /local/mysql-db-backups/data/dummy$$
+find /local/mysql-db-backups/data/* -depth -type d -exec rmdir {} \; >/dev/null 2>&1
