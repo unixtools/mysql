@@ -43,4 +43,7 @@ chown root:root /etc/my.cnf
 rm -f /home/local/adm/rc-start/rc.*.mysql
 ln -s /local/mysql/rc.mysqld /home/local/adm/rc-start/rc.400.mysql
 
+rm -rf /local/mysql-db-backups/bin
+mkdir -p /local/mysql-db-backups/data /local/mysql-db-backups/latest
+
 chown -R mysql:mysql /local/mysql
