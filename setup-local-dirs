@@ -3,11 +3,11 @@
 svn upgrade /local/mysql >/dev/null 2>/dev/null
 svn update /local/mysql
 
-PERCONA_DIR=Percona-Server-5.5.27-rel28.1-296.Linux.x86_64
+PERCONA_DIR=Percona-Server-5.5.28-rel29.1-334.Linux.x86_64
 
-PERCONA_DL=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/Percona-Server-5.5.27-rel28.1-296.Linux.x86_64.tar.gz
+PERCONA_DL=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/Percona-Server-5.5.28-rel29.1-334.Linux.x86_64.tar.gz
 
-PERCONA_TAR=Percona-Server-5.5.27-rel28.1-296.Linux.x86_64.tar.gz
+PERCONA_TAR=Percona-Server-5.5.28-rel29.1-334.Linux.x86_64.tar.gz
 
 if [ ! -d "/local/mysql/tar" ]; then
 	mkdir -p /local/mysql/tar
