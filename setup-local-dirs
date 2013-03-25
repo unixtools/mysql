@@ -5,7 +5,7 @@ svn update /local/mysql
 
 # http://www.percona.com/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/
 
-PERCONA_DL=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/Percona-Server-5.5.28-rel29.2-360.Linux.x86_64.tar.gz
+PERCONA_DL=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/Percona-Server-5.5.30-rel30.1-465.Linux.x86_64.tar.gz
 
 PERCONA_TAR=`basename $PERCONA_DL`
 PERCONA_DIR=`basename $PERCONA_TAR .tar.gz`
