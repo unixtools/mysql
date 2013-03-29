@@ -55,6 +55,13 @@ chown root:root /etc/my.cnf
 rm -f /home/local/adm/rc-start/rc.*.mysql
 ln -s /local/mysql/rc.mysqld /home/local/adm/rc-start/rc.400.mysql
 
+# If we're running corosync/pacemaker + cluster, don't do startup script
+if [ -e /local/mysql/cluster ]; then
+  if [ -e /etc/corosync ]; then
+    rm -f /home/local/adm/rc-start/rc.*.mysql
+  fi
+fi
+
 rm -rf /local/mysql-db-backups/bin
 mkdir -p /local/mysql-db-backups/data /local/mysql-db-backups/latest
 
