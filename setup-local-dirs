@@ -67,3 +67,24 @@ mkdir -p /local/mysql-db-backups/data /local/mysql-db-backups/latest
 
 chown -R mysql:mysql /local/mysql
 
+#
+# Check for backwards compatability openssl libraries
+#
+ldd /local/mysql/server/bin/mysqld | grep libcrypto.so.6 > /dev/null
+if [ $? == 0 ]; then
+	if [ ! -e /lib64/libcrypto.so.6 ]; then
+		if [ -e /lib64/libcrypto.so.10 ]; then
+			ln -s libcrypto.so.10 /lib64/libcrypto.so.6
+		else
+			echo "Error, need target for libcrypto.so link."
+		fi
+	fi
+	if [ ! -e /lib64/libssl.so.6 ]; then
+		if [ -e /lib64/libssl.so.10 ]; then
+			ln -s libssl.so.10 /lib64/libssl.so.6
+		else
+			echo "Error, need target for libssl.so link."
+		fi
+	fi
+fi
+
