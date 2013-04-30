@@ -3,9 +3,17 @@
 svn upgrade /local/mysql >/dev/null 2>/dev/null
 svn update /local/mysql
 
-# http://www.percona.com/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/
+PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64
+PERCONA_DL=$PERCONA_DL_BASE/Percona-Server-5.5.30-rel30.2-500.Linux.x86_64.tar.gz
 
-PERCONA_DL=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/Percona-Server-5.5.29-rel29.4-401.Linux.x86_64.tar.gz
+if [ "x$1" == "xcluster" ]; then
+	touch /local/mysql/cluster
+fi
+
+if [ -e "/local/mysql/cluster" ]; then
+	PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/x86_64
+	PERCONA_DL=$PERCONA_DL_BASE/Percona-XtraDB-Cluster-5.5.30-23.7.4.405.Linux.x86_64.tar.gz
+fi
 
 PERCONA_TAR=`basename $PERCONA_DL`
 PERCONA_DIR=`basename $PERCONA_TAR .tar.gz`
@@ -47,8 +55,35 @@ chown root:root /etc/my.cnf
 rm -f /home/local/adm/rc-start/rc.*.mysql
 ln -s /local/mysql/rc.mysqld /home/local/adm/rc-start/rc.400.mysql
 
+# If we're running corosync/pacemaker + cluster, don't do startup script
+if [ -e /local/mysql/cluster ]; then
+  if [ -e /etc/corosync ]; then
+    rm -f /home/local/adm/rc-start/rc.*.mysql
+  fi
+fi
+
 rm -rf /local/mysql-db-backups/bin
 mkdir -p /local/mysql-db-backups/data /local/mysql-db-backups/latest
 
 chown -R mysql:mysql /local/mysql
 
+#
+# Check for backwards compatability openssl libraries
+#
+ldd /local/mysql/server/bin/mysqld | grep libcrypto.so.6 > /dev/null
+if [ $? == 0 ]; then
+	if [ ! -e /lib64/libcrypto.so.6 ]; then
+		if [ -e /lib64/libcrypto.so.10 ]; then
+			ln -s libcrypto.so.10 /lib64/libcrypto.so.6
+		else
+			echo "Error, need target for libcrypto.so link."
+		fi
+	fi
+	if [ ! -e /lib64/libssl.so.6 ]; then
+		if [ -e /lib64/libssl.so.10 ]; then
+			ln -s libssl.so.10 /lib64/libssl.so.6
+		else
+			echo "Error, need target for libssl.so link."
+		fi
+	fi
+fi
