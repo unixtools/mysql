@@ -4,7 +4,7 @@ svn upgrade /local/mysql >/dev/null 2>/dev/null
 svn update /local/mysql
 
 PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64
-PERCONA_DL=$PERCONA_DL_BASE/Percona-Server-5.5.30-rel30.1-465.Linux.x86_64.tar.gz
+PERCONA_DL=$PERCONA_DL_BASE/Percona-Server-5.5.30-rel30.2-500.Linux.x86_64.tar.gz
 
 if [ "x$1" == "xcluster" ]; then
 	touch /local/mysql/cluster
@@ -12,7 +12,7 @@ fi
 
 if [ -e "/local/mysql/cluster" ]; then
 	PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/x86_64
-	PERCONA_DL=$PERCONA_DL_BASE/Percona-XtraDB-Cluster-5.5.29-23.7.2.389.Linux.x86_64.tar.gz
+	PERCONA_DL=$PERCONA_DL_BASE/Percona-XtraDB-Cluster-5.5.30-23.7.4.405.Linux.x86_64.tar.gz
 fi
 
 PERCONA_TAR=`basename $PERCONA_DL`
