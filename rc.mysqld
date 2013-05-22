@@ -17,6 +17,9 @@ fi
 # Shut down existing instance if any
 mysqladmin shutdown
 
+# Raise file limit
+ulimit -HSn 16000
+
 # Create db if not present
 if [ ! -e /local/mysql/data/mysql/host.MYD ]; then
 	/local/mysql/server/scripts/mysql_install_db \
