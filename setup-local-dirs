@@ -1,7 +1,7 @@
 #!/bin/sh -x
 
-svn upgrade /local/mysql >/dev/null 2>/dev/null
-svn update /local/mysql
+cd /local/mysql
+git pull -u
 
 PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64
 PERCONA_DL=$PERCONA_DL_BASE/Percona-Server-5.5.30-rel30.2-500.Linux.x86_64.tar.gz
