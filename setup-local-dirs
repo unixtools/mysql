@@ -8,25 +8,25 @@ svn update /local/mysql
 PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64
 PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/
 
-rm percona.html
+rm -f percona.html
 wget -O percona.html $PERCONA_WEB_BASE
 PERCONA_FILE=`grep -oP "Percona-Server-[0-9]\.[0-9]\..+?\.tar\.gz" percona.html | head -n 1`
 PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
 
-rm percona.html
+rm -f percona.html
 
 if [ "x$1" == "xcluster" ]; then
 	touch /local/mysql/cluster
 fi
 
 if [ -e "/local/mysql/cluster" ]; then
-	rm percona_cluster.html
+	rm -f percona_cluster.html
 	PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/x86_64
 	PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/
 	wget -O percona_cluster.html $PERCONA_WEB_BASE
 	PERCONA_FILE=`grep -oP "Percona-XtraDB-Cluster-[0-9]\.[0-9]\..+?\.tar\.gz" percona_cluster.html | head -n 1`
 	PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
-	rm percona_cluster.html
+	rm -f percona_cluster.html
 
 fi
 
