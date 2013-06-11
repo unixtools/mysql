@@ -3,6 +3,7 @@
 cd /local/mysql || exit 1
 
 if [ -e /local/mysql/.svn ]; then
+	svn upgrade /local/mysql >/dev/null 2>/dev/null
 	svn update /local/mysql
 fi
 
