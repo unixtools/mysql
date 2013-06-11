@@ -1,10 +1,19 @@
 #!/bin/sh -x
 
-cd /local/mysql
-git pull -u
+cd /local/mysql || exit 1
+
+if [ -e /local/mysql/.svn ]; then
+	svn update /local/mysql
+fi
+
+if [ -e /local/mysql/.git ]; then
+	git pull
+fi
 
 PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64
-PERCONA_DL=$PERCONA_DL_BASE/Percona-Server-5.5.31-rel30.3-520.Linux.x86_64.tar.gz
+PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/
+PERCONA_FILE=`wget -q -O - $PERCONA_WEB_BASE | grep -oP "Percona-Server-[0-9]\.[0-9]\..+?\.tar\.gz" | head -n 1`
+PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
 
 if [ "x$1" == "xcluster" ]; then
 	touch /local/mysql/cluster
@@ -12,7 +21,9 @@ fi
 
 if [ -e "/local/mysql/cluster" ]; then
 	PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/x86_64
-	PERCONA_DL=$PERCONA_DL_BASE/Percona-XtraDB-Cluster-5.5.30-23.7.4.405.Linux.x86_64.tar.gz
+	PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/x86_64/
+	PERCONA_FILE=`wget -q -O - $PERCONA_WEB_BASE | grep -oP "Percona-XtraDB-Cluster-[0-9]\.[0-9]\..+?\.tar\.gz" | head -n 1`
+	PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
 fi
 
 PERCONA_TAR=`basename $PERCONA_DL`
