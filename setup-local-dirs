@@ -1,33 +1,30 @@
 #!/bin/sh -x
 
-svn upgrade /local/mysql >/dev/null 2>/dev/null
-svn update /local/mysql
+cd /local/mysql || exit 1
 
+if [ -e /local/mysql/.svn ]; then
+	svn upgrade /local/mysql >/dev/null 2>/dev/null
+	svn update /local/mysql
+fi
 
+if [ -e /local/mysql/.git ]; then
+	git pull
+fi
 
 PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64
 PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/
-
-rm -f percona.html
-wget -O percona.html $PERCONA_WEB_BASE
-PERCONA_FILE=`grep -oP "Percona-Server-[0-9]\.[0-9]\..+?\.tar\.gz" percona.html | head -n 1`
+PERCONA_FILE=`wget -q -O - $PERCONA_WEB_BASE | grep -oP "Percona-Server-[0-9]\.[0-9]\..+?\.tar\.gz" | head -n 1`
 PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
-
-rm -f percona.html
 
 if [ "x$1" == "xcluster" ]; then
 	touch /local/mysql/cluster
 fi
 
 if [ -e "/local/mysql/cluster" ]; then
-	rm -f percona_cluster.html
 	PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/x86_64
-	PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/
-	wget -O percona_cluster.html $PERCONA_WEB_BASE
-	PERCONA_FILE=`grep -oP "Percona-XtraDB-Cluster-[0-9]\.[0-9]\..+?\.tar\.gz" percona_cluster.html | head -n 1`
+	PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/x86_64/
+	PERCONA_FILE=`wget -q -O - $PERCONA_WEB_BASE | grep -oP "Percona-XtraDB-Cluster-[0-9]\.[0-9]\..+?\.tar\.gz" | head -n 1`
 	PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
-	rm -f percona_cluster.html
-
 fi
 
 PERCONA_TAR=`basename $PERCONA_DL`
@@ -98,8 +95,11 @@ if [ $? == 0 ]; then
 		if [ -e /lib64/libssl.so.10 ]; then
 			ln -s libssl.so.10 /lib64/libssl.so.6
 		else
-			echo "Error, need target for libssl.so link."
+			if [ -e /usr/lib64/libssl.so.10 ]; then
+				ln -s /usr/lib64/libssl.so.10 /lib64/libssl.so.6
+			else
+				echo "Error, need target for libssl.so link."
+			fi
 		fi
 	fi
 fi
-
