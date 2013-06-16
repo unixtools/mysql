@@ -110,5 +110,5 @@ fi
 
 # Add percona toolkit
 if [ ! -e /usr/bin/pt-show-grants ]; then
-        rpm -Uvh percona.com/get/percona-toolkit.rpm
+        rpm -Uvh http://percona.com/get/percona-toolkit.rpm
 fi
