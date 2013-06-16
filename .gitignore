@@ -3,3 +3,4 @@ data
 mysql.conf
 server
 tar
+query.log
