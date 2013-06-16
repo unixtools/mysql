@@ -3,6 +3,7 @@
 cd /local/mysql || exit 1
 
 if [ -e /local/mysql/.svn ]; then
+	svn upgrade /local/mysql >/dev/null 2>/dev/null
 	svn update /local/mysql
 fi
 
@@ -87,7 +88,11 @@ if [ $? == 0 ]; then
 		if [ -e /lib64/libcrypto.so.10 ]; then
 			ln -s libcrypto.so.10 /lib64/libcrypto.so.6
 		else
-			echo "Error, need target for libcrypto.so link."
+			if [ -e /usr/lib64/libcrypto.so.10 ]; then
+				ln -s /usr/lib64/libcrypto.so.10 /lib64/libcrypto.so.6
+			else
+				echo "Error, need target for libcrypto.so link."
+			fi
 		fi
 	fi
 	if [ ! -e /lib64/libssl.so.6 ]; then
