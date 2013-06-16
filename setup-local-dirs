@@ -88,7 +88,11 @@ if [ $? == 0 ]; then
 		if [ -e /lib64/libcrypto.so.10 ]; then
 			ln -s libcrypto.so.10 /lib64/libcrypto.so.6
 		else
-			echo "Error, need target for libcrypto.so link."
+			if [ -e /usr/lib64/libcrypto.so.10 ]; then
+				ln -s /usr/lib64/libcrypto.so.10 /lib64/libcrypto.so.6
+			else
+				echo "Error, need target for libcrypto.so link."
+			fi
 		fi
 	fi
 	if [ ! -e /lib64/libssl.so.6 ]; then
@@ -102,4 +106,9 @@ if [ $? == 0 ]; then
 			fi
 		fi
 	fi
+fi
+
+# Add percona toolkit
+if [ ! -e /usr/bin/pt-show-grants ]; then
+        rpm -Uvh percona.com/get/percona-toolkit.rpm
 fi
