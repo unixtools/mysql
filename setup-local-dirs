@@ -11,8 +11,13 @@ if [ -e /local/mysql/.git ]; then
 	git pull
 fi
 
-PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64
-PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/
+ARCH=x86_64
+if [ ! -e /lib64 ]; then
+	ARCH=i686
+fi
+
+PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/$ARCH
+PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-Server-5.5/LATEST/binary/linux/$ARCH/
 PERCONA_FILE=`wget -q -O - $PERCONA_WEB_BASE | grep -oP "Percona-Server-[0-9]\.[0-9]\..+?\.tar\.gz" | head -n 1`
 PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
 
@@ -21,8 +26,8 @@ if [ "x$1" == "xcluster" ]; then
 fi
 
 if [ -e "/local/mysql/cluster" ]; then
-	PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/x86_64
-	PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/x86_64/
+	PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/$ARCH
+	PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/$ARCH/
 	PERCONA_FILE=`wget -q -O - $PERCONA_WEB_BASE | grep -oP "Percona-XtraDB-Cluster-[0-9]\.[0-9]\..+?\.tar\.gz" | head -n 1`
 	PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
 fi
@@ -84,6 +89,9 @@ chown -R mysql:mysql /local/mysql
 #
 ldd /local/mysql/server/bin/mysqld | grep libcrypto.so.6 > /dev/null
 if [ $? == 0 ]; then
+
+	if [ -e /lib64 ]; then
+
 	if [ ! -e /lib64/libcrypto.so.6 ]; then
 		if [ -e /lib64/libcrypto.so.10 ]; then
 			ln -s libcrypto.so.10 /lib64/libcrypto.so.6
@@ -106,6 +114,36 @@ if [ $? == 0 ]; then
 			fi
 		fi
 	fi
+
+	else
+
+	if [ ! -e /lib/libcrypto.so.6 ]; then
+		if [ -e /lib/libcrypto.so.10 ]; then
+			ln -s libcrypto.so.10 /lib/libcrypto.so.6
+		else
+			if [ -e /usr/lib/libcrypto.so.10 ]; then
+				ln -s /usr/lib/libcrypto.so.10 /lib/libcrypto.so.6
+			else
+				echo "Error, need target for libcrypto.so link."
+			fi
+		fi
+	fi
+	if [ ! -e /lib/libssl.so.6 ]; then
+		if [ -e /lib/libssl.so.10 ]; then
+			ln -s libssl.so.10 /lib/libssl.so.6
+		else
+			if [ -e /usr/lib/libssl.so.10 ]; then
+				ln -s /usr/lib/libssl.so.10 /lib/libssl.so.6
+			else
+				echo "Error, need target for libssl.so link."
+			fi
+		fi
+	fi
+
+
+	fi
+
+	
 fi
 
 # Add percona toolkit
