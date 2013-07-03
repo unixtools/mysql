@@ -16,7 +16,7 @@ for f in /local/mysql/data/*; do
                 db=`basename $f`
 
                 mkdir -p $BASE/latest
-                mysqldump --skip-opt $db \
+                mysqldump --opt $db \
                         | gzip -v1 -c - > $BASE/latest/$db.gz
 
                 mkdir -p $BASE/data/$db/$YR/$MO/$DY 
