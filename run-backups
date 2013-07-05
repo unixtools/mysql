@@ -11,6 +11,8 @@ PATH=/local/mysql/server/bin:$PATH
 /local/mysql/clean-backups
 mkdir -p $BASE/data
 
+# DO NOT EVER USE --skip-opt, it throws away import stuff like auto_increment flags
+
 for f in /local/mysql/data/*; do
         if [ -d $f ]; then
                 db=`basename $f`
