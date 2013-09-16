@@ -5,14 +5,14 @@ use Sys::Syslog;
 use lib "/local/umrperl/libs";
 use UMR::MySQLObject;
 
-my $trace = 0;
+my $trace = 1;
 my $name  = $0;
 $name =~ s|.*/||go;
 
 openlog $name, "ndelay,pid", "local0";
 
 # Short timeout
-alarm(5);
+alarm(10);
 $SIG{ALARM} = \&handle_alarm;
 
 my $db = new UMR::MySQLObject();
@@ -35,6 +35,8 @@ if ( -e "/local/mysql/cluster" ) {
         syslog( "LOG_INFO", "db connection/status failed - wsrep_local_state=$cstat" );
         exit(1);
     }
+
+    $db->SQL_CloseDatabase();
 }
 
 if ($trace) {
