@@ -1,0 +1,5 @@
+#!/bin/sh -x
+
+mysql <<EOF
+set global general_log='OFF';
+EOF
