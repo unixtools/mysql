@@ -11,20 +11,26 @@ if [ -e /local/mysql/.git ]; then
 	git pull
 fi
 
-PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64
-PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/
-PERCONA_FILE=`wget -q -O - $PERCONA_WEB_BASE | grep -oP "Percona-Server-[0-9]\.[0-9]\..+?\.tar\.gz" | head -n 1`
-PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
+#PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64
+#PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-Server-5.5/LATEST/binary/linux/x86_64/
+#PERCONA_FILE=`wget -q -O - $PERCONA_WEB_BASE | grep -oP "Percona-Server-[0-9]\.[0-9]\..+?\.tar\.gz" | head -n 1`
+#PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
+
+# Until we rewrite to handle new page layouts
+PERCONA_DL=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/release-5.5.34-32.0/591/binary/linux/x86_64/Percona-Server-5.5.34-rel32.0-591.Linux.x86_64.tar.gz
 
 if [ "x$1" == "xcluster" ]; then
 	touch /local/mysql/cluster
 fi
 
 if [ -e "/local/mysql/cluster" ]; then
-	PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/x86_64
-	PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/x86_64/
-	PERCONA_FILE=`wget -q -O - $PERCONA_WEB_BASE | grep -oP "Percona-XtraDB-Cluster-[0-9]\.[0-9]\..+?\.tar\.gz" | head -n 1`
-	PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
+	#PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/x86_64
+	#PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/x86_64/
+	#PERCONA_FILE=`wget -q -O - $PERCONA_WEB_BASE | grep -oP "Percona-XtraDB-Cluster-[0-9]\.[0-9]\..+?\.tar\.gz" | head -n 1`
+	#PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
+
+	# Until we rewrite to handle new page layouts
+	PERCONA_DL=http://www.percona.com/redir/downloads/Percona-XtraDB-Cluster/LATEST/release-5.5.34-23.7.6/565/binary/linux/x86_64/Percona-XtraDB-Cluster-5.5.34-23.7.6.565.Linux.x86_64.tar.gz
 fi
 
 PERCONA_TAR=`basename $PERCONA_DL`
