@@ -147,6 +147,10 @@ if [ $? == 0 ]; then
 fi
 
 # Add percona toolkit
-if [ ! -e /usr/bin/pt-show-grants ]; then
-	rpm -Uvh http://percona.com/get/percona-toolkit.rpm
-fi
+PERCONA_TK_DL_BASE=http://www.percona.com/redir/downloads/percona-toolkit/LATEST/RPM/
+PERCONA_TK_WEB_BASE=http://www.percona.com/downloads/percona-toolkit/LATEST/RPM/
+PERCONA_TK_FILE=`wget -q -O - $PERCONA_TK_WEB_BASE | grep -oP "percona-toolkit-[0-9\.\-]+.noarch.rpm" | head -n 1`
+PERCONA_TK_DL=$PERCONA_TK_DL_BASE/$PERCONA_TK_FILE
+PERCONA_TK_NAME=`echo $PERCONA_TK_FILE | perl -pi -e s/.rpm//go`
+
+rpm --queryformat "" -q $PERCONA_TK_NAME || rpm -Uvh $PERCONA_TK_DL
