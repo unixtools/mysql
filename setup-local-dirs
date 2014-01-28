@@ -159,4 +159,10 @@ PERCONA_TK_FILE=`wget -q -O - $PERCONA_TK_WEB_BASE | grep -oP "percona-toolkit-[
 PERCONA_TK_DL=$PERCONA_TK_DL_BASE/$PERCONA_TK_FILE
 PERCONA_TK_NAME=`echo $PERCONA_TK_FILE | perl -pi -e s/.rpm//go`
 
+# Fix broken wsrep in 5.5 builds
+if [ -e /local/mysql/server/bin/wsrep_sst_rsync ]; then
+	perl -pi -e "s/^uid =/#uid =/go" /local/mysql/server/bin/wsrep_sst_rsync
+	perl -pi -e "s/^gid =/#gid =/go" /local/mysql/server/bin/wsrep_sst_rsync
+fi
+
 rpm --queryformat "" -q $PERCONA_TK_NAME || rpm -Uvh $PERCONA_TK_DL
