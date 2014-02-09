@@ -172,4 +172,6 @@ fi
 
 rpm --queryformat "" -q libaio || yum -y install libaio
 
+rpm --queryformat "" -q mytop || yum -y install mytop
+
 rpm --queryformat "" -q $PERCONA_TK_NAME || yum -y localinstall $PERCONA_TK_DL
