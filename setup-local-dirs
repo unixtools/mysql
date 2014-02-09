@@ -165,4 +165,11 @@ if [ -e /local/mysql/server/bin/wsrep_sst_rsync ]; then
 	perl -pi -e "s/^gid =/#gid =/go" /local/mysql/server/bin/wsrep_sst_rsync
 fi
 
+# Fix missing client
+if [ ! -e /usr/bin/mysql ]; then
+	yum -y install mysql
+fi
+
+rpm --queryformat "" -q libaio || yum -y install libaio
+
 rpm --queryformat "" -q $PERCONA_TK_NAME || yum -y localinstall $PERCONA_TK_DL
