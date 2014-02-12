@@ -21,9 +21,6 @@ PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-Server-5.5/LATEST/bina
 PERCONA_FILE=`wget -q -O - $PERCONA_WEB_BASE | grep -oP "Percona-Server-[0-9]\.[0-9]\..+?\.tar\.gz" | head -n 1`
 PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
 
-# Until we rewrite to handle new page layouts
-#PERCONA_DL=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/release-5.5.34-32.0/591/binary/linux/$ARCH/Percona-Server-5.5.34-rel32.0-591.Linux.$ARCH.tar.gz
-
 if [ "x$1" == "xcluster" ]; then
 	touch /local/mysql/cluster
 fi
@@ -33,9 +30,6 @@ if [ -e "/local/mysql/cluster" ]; then
 	PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/$ARCH/
 	PERCONA_FILE=`wget -q -O - $PERCONA_WEB_BASE | grep -oP "Percona-XtraDB-Cluster-[0-9]\.[0-9]\..+?\.tar\.gz" | head -n 1`
 	PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
-
-	# Until we rewrite to handle new page layouts
-	#PERCONA_DL=http://www.percona.com/redir/downloads/Percona-XtraDB-Cluster/LATEST/release-5.5.34-23.7.6/565/binary/linux/$ARCH/Percona-XtraDB-Cluster-5.5.34-23.7.6.565.Linux.$ARCH.tar.gz
 fi
 
 PERCONA_TAR=`basename $PERCONA_DL`
@@ -95,7 +89,6 @@ chown -R mysql:mysql /local/mysql
 #
 ldd /local/mysql/server/bin/mysqld | grep libcrypto.so.6 > /dev/null
 if [ $? == 0 ]; then
-
 	if [ -e /lib64 ]; then
 
 	if [ ! -e /lib64/libcrypto.so.6 ]; then
@@ -120,7 +113,6 @@ if [ $? == 0 ]; then
 			fi
 		fi
 	fi
-
 	else
 
 	if [ ! -e /lib/libcrypto.so.6 ]; then
@@ -149,7 +141,6 @@ if [ $? == 0 ]; then
 
 	fi
 
-	
 fi
 
 # Add percona toolkit
