@@ -1,0 +1,46 @@
+#!/usr/bin/perl
+
+use strict;
+use File::Temp qw(tempfile);
+
+my $section;
+my $pw;
+my $saw_pw;
+
+open( my $in, "</root/.my.cnf" );
+while ( defined( my $line = <$in> ) ) {
+    $line =~ s/\s*#.*//go;
+
+    if ( $line =~ /^\[(.*?)\]/o ) {
+        $section = $1;
+    }
+    elsif ( $section eq "client" && $line =~ /\s*password\s*=\s*(.*?)\s*$/ ) {
+        $pw     = $1;
+        $saw_pw = 1;
+    }
+}
+close($in);
+
+if ( !$pw ) {
+    chomp( $pw = `uuidgen` );
+}
+
+my ( $fh, $filename ) = tempfile();
+print $fh "grant super on *.* to root\@'%' identified by '$pw';\n";
+print $fh "grant super on *.* to root\@'localhost' identified by '$pw';\n";
+print $fh "grant super on *.* to root\@'127.0.0.1' identified by '$pw';\n";
+#print $fh "flush privileges\n";
+close($fh);
+
+system("mysql < $filename");
+
+if ( !$saw_pw ) {
+    umask(077);
+    open( my $out, ">>/root/.my.cnf" );
+    print $out "\n\n";
+    print $out "[client]\n";
+    print $out "password=$pw\n";
+    close($out);
+}
+
+unlink($filename);
