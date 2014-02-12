@@ -11,7 +11,7 @@ PATH=/local/mysql/server/bin:/usr/bin:$PATH
 sleep 10
 
 if [ -e "/local/mysql/cluster" ]; then
-   sleep 10
+	sleep 10
 fi
 
 mysql_upgrade
