@@ -20,7 +20,6 @@ for f in /local/mysql/data/*; do
 
                 mkdir -p $BASE/latest
                 mysqldump \
-					--defaults-file=/local/mysql/mysql-base.conf \
 					--defaults-extra-file=/local/mysql/mysql.conf \
 					--opt $db \
                    | gzip -v1 -c - > $BASE/latest/$db.gz
