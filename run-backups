@@ -29,11 +29,10 @@ my @configs = ( "/etc/my.cnf", "/local/mysql/mysql-base.conf", "/local/mysql/mys
 foreach my $cfile (@configs) {
     next if ( !-e $cfile );
     open( my $in, "<$cfile" );
-	while ( defined(my $line = <$in>) )
-	{
-		print $fh $line;
-	}
-	close($in);
+    while ( defined( my $line = <$in> ) ) {
+        print $fh $line;
+    }
+    close($in);
     print $fh "\n\n";
 }
 close($fh);
@@ -42,6 +41,7 @@ opendir( my $dbdir, $datadir );
 while ( my $db = readdir($dbdir) ) {
     next if ( $db eq "." || $db eq ".." );
     next if ( $db eq "lost+found" );
+    next if ( $db eq "performance_schema" );
     next if ( !-d "$datadir/$db" );
     next if ( !-e "$datadir/$db/db.opt" );
 
