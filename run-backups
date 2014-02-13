@@ -1,33 +1,67 @@
-#!/bin/sh 
+#!/usr/bin/perl
 
-TSTAMP=`date "+%Y%m%d%H%M"`
-YR=`date "+%Y"`
-MO=`date "+%m"`
-DY=`date "+%d"`
-BASE=/local/mysql-db-backups
+use strict;
+use File::Temp qw(tempfile);
+use File::Path;
 
-PATH=/local/mysql/server/bin:$PATH
+$ENV{PATH} = "/local/mysql/server/bin:" . $ENV{PATH};
+my @ts = localtime(time);
 
-/local/mysql/clean-backups
-mkdir -p $BASE/data
+my $tstamp = sprintf( "%.4d%.2d%.2d-%.2d%.2d", $ts[5] + 1900, $ts[4] + 1, $ts[3], $ts[2], $ts[1] );
+
+my $base = "/local/mysql-db-backups";
+
+system("/local/mysql/clean-backups");
+
+system( "mkdir", "-p", "$base/latest" );
 
 # DO NOT EVER USE --skip-opt, it throws away important
 # stuff like auto_increment flags
 
-for f in /local/mysql/data/*; do
-        if [ -d $f ]; then
-                db=`basename $f`
+my $datadir = "/local/mysql/data";
 
-                mkdir -p $BASE/latest
-                mysqldump \
-					--defaults-extra-file=/local/mysql/mysql.conf \
-						--opt $db | gzip -v1 -c - > $BASE/latest/$db.gz
+# Generate a merged config file from several other files
 
-                mkdir -p $BASE/data/$db/$YR/$MO/$DY 
-                cp $BASE/latest/$db.gz $BASE/data/$db/$YR/$MO/$DY/$TSTAMP.gz
-        fi
-done
+umask(077);
+my ( $fh, $tmpfile ) = tempfile();
 
-/local/mysql/clean-backups
+my @configs = ( "/etc/my.cnf", "/local/mysql/mysql-base.conf", "/local/mysql/mysql.conf", "/root/.my.cnf" );
+foreach my $cfile (@configs) {
+    next if ( !-e $cfile );
+    open( my $in, "<$cfile" );
+	while ( defined(my $line = <$in>) )
+	{
+		print $fh $line;
+	}
+	close($in);
+    print $fh "\n\n";
+}
+close($fh);
 
-mysqlcheck -A -a 
+opendir( my $dbdir, $datadir );
+while ( my $db = readdir($dbdir) ) {
+    next if ( $db eq "." || $db eq ".." );
+    next if ( $db eq "lost+found" );
+    next if ( !-d "$datadir/$db" );
+    next if ( !-e "$datadir/$db/db.opt" );
+
+    my $cmd = "mysqldump --defaults-file=$tmpfile $db | gzip -v1 -c - > $base/latest/${db}.gz";
+    print "+ $cmd\n";
+    system($cmd);
+
+    my $dest = sprintf( "%s/data/%s/%.4d/%.2d/%.2d", $base, $db, $ts[5] + 1900, $ts[4] + 1, $ts[3] );
+
+    system( "mkdir", "-p", "$dest" );
+
+    my @cmd = ( "cp", "$base/latest/${db}.gz", "$dest/${tstamp}.gz" );
+    print "+ ", join( " ", @cmd ), "\n";
+    system(@cmd);
+}
+
+unlink($tmpfile);
+
+print "Cleaning backups dir...\n";
+system("/local/mysql/clean-backups");
+
+print "Auto checking tables...\n";
+system("mysqlcheck -A -a");
