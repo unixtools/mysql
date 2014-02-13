@@ -19,8 +19,9 @@ for f in /local/mysql/data/*; do
                 db=`basename $f`
 
                 mkdir -p $BASE/latest
-                mysqldump --opt $db \
-                        | gzip -v1 -c - > $BASE/latest/$db.gz
+                mysqldump \
+					--defaults-extra-file=/local/mysql/mysql.conf \
+						--opt $db | gzip -v1 -c - > $BASE/latest/$db.gz
 
                 mkdir -p $BASE/data/$db/$YR/$MO/$DY 
                 cp $BASE/latest/$db.gz $BASE/data/$db/$YR/$MO/$DY/$TSTAMP.gz
