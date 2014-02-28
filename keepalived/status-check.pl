@@ -5,6 +5,11 @@ use Sys::Syslog;
 use lib "/local/umrperl/libs";
 use UMR::MySQLObject;
 
+BEGIN {
+    # Stop sending usage reports
+    $UMR::UsageLogger::IGNORE = 1;
+}
+
 my $trace = 1;
 my $name  = $0;
 $name =~ s|.*/||go;
