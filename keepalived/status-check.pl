@@ -2,8 +2,7 @@
 
 use strict;
 use Sys::Syslog;
-use lib "/local/umrperl/libs";
-use UMR::MySQLObject;
+use DBI;
 
 my $trace = 1;
 my $name  = $0;
@@ -15,10 +14,25 @@ openlog $name, "ndelay,pid", "local0";
 alarm(10);
 $SIG{ALARM} = \&handle_alarm;
 
-my $db = new UMR::MySQLObject();
+# Assume any password found in root's config is root's pw
+my $pw;
+my $user = "root";
+open( my $in, "/root/.my.cnf" );
+while ( defined( my $line = <$in> ) ) {
+    if ( $line =~ /password\s*=\s*(.*?)\s*$/o ) {
+        $pw = $1;
+    }
+    if ( $line =~ /user\s*=\s*(.*?)\s*$/o ) {
+        $user = $1;
+    }
+    last if ( $pw && $user );
+}
+close($in);
 
-my $res = $db->SQL_OpenDatabase( "mysql", nopasswd => 1 );
-if ( !$res ) {
+my $dsn = "DBI:mysql:database=mysql";
+my $db = DBI->connect( $dsn, $user, $pw );
+
+if ( !$db ) {
     syslog( "LOG_INFO", "db connection/status failed" );
     exit(1);
 }
@@ -29,14 +43,17 @@ if ( -e "/local/mysql/cluster" ) {
     }
 
     my $qry = "show status like 'wsrep_local_state'";
-    my ( $label, $cstat ) = $db->SQL_DoQuery($qry);
+    my $cid = $db->prepare($qry);
+    $cid->execute();
+    my ( $label, $cstat ) = $cid->fetchrow();
+    $cid->finish();
     if ( $cstat != 4 )    # synced
     {
         syslog( "LOG_INFO", "db connection/status failed - wsrep_local_state=$cstat" );
         exit(1);
     }
 
-    $db->SQL_CloseDatabase();
+    $db->disconnect();
 }
 
 if ($trace) {
@@ -48,4 +65,3 @@ sub handle_alarm {
     syslog( "LOG_INFO", "request timed out, exiting with failure" );
     exit(1);
 }
-
