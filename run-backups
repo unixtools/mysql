@@ -43,7 +43,7 @@ while ( my $db = readdir($dbdir) ) {
     next if ( $db eq "lost+found" );
     next if ( $db eq "performance_schema" );
     next if ( !-d "$datadir/$db" );
-    next if ( !-e "$datadir/$db/db.opt" );
+    next if ( !-e "$datadir/$db/db.opt" && !glob("$datadir/$db/*.frm") );
 
     my $cmd = "mysqldump --defaults-file=$tmpfile $db | gzip -v1 -c - > $base/latest/${db}.gz";
     print "+ $cmd\n";
