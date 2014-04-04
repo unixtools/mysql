@@ -4,7 +4,7 @@ cd /local/mysql/server
 
 PATH=/local/mysql/server/bin:/usr/bin:$PATH
 
-/local/mysql/setup-local-dirs
+/local/mysql/setup-local-dirs $*
 
 /local/mysql/rc.mysqld
 

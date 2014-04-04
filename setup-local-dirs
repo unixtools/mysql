@@ -17,12 +17,12 @@ if ( -e "/local/mysql/cluster" ) {
 my @save_argv = @ARGV;
 
 my $res = GetOptions(
-    "debug+"  => \$debug,
-    "cluster" => \$cluster,
-    "force"   => \$force,
-    "help"    => \$help,
-    "version" => \$version,
-    "skip"    => \$skip
+    "debug+"    => \$debug,
+    "cluster"   => \$cluster,
+    "force"     => \$force,
+    "help"      => \$help,
+    "version=s" => \$version,
+    "skip"      => \$skip
 );
 if ( !$res || $help ) {
     print "Usage: $0 [--version=$version] [--cluster] [--skip] [--debug] [--help]\n";
