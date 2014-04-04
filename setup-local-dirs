@@ -57,7 +57,7 @@ if ( !$skip ) {
 
     # re-exec to get latest changes
     print "Re-executing self to get latest changes...\n";
-    exec( $0, "--skip", @ARGV );
+    exec( $0, "--skip", @save_argv );
     die "failed to re-exec self.\n";
 }
 
