@@ -1,169 +1,250 @@
-#!/bin/sh -x
+#!/usr/bin/perl
 
-cd /local/mysql || exit 1
+use strict;
+use Getopt::Long;
+use LWP::Simple;
 
-if [ -e /local/mysql/.svn ]; then
-	svn upgrade /local/mysql >/dev/null 2>/dev/null
-	svn update /local/mysql
-fi
+my $help    = 0;
+my $cluster = 0;
+my $version = "5.5";
+my $skip    = 0;
+my $debug   = 0;
+my $force   = 0;
+if ( -e "/local/mysql/cluster" ) {
+    $cluster = 1;
+}
 
-if [ -e /local/mysql/.git ]; then
-	git pull
-fi
+my $res = GetOptions(
+    "debug+"  => \$debug,
+    "cluster" => \$cluster,
+    "force"   => \$force,
+    "help"    => \$help,
+    "version" => \$version,
+    "skip"    => \$skip
+);
+if ( !$res || $help ) {
+    print "Usage: $0 [--version=$version] [--cluster] [--skip] [--debug] [--help]\n";
+    exit(1);
+}
 
-ARCH=x86_64
-if [ ! -e /lib64 ]; then
-	ARCH=i686
-fi
+chdir("/local/mysql") || die;
 
-PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-Server-5.5/LATEST/binary/tarball
-PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-Server-5.5/LATEST/binary/tarball
-#PERCONA_FILE=`wget -q -O - $PERCONA_WEB_BASE | grep -oP "Percona-Server-[0-9]\.[0-9]\..+?\.$ARCH\.tar\.gz" | head -n 1`
-PERCONA_FILE=Percona-Server-5.5.36-rel34.2-648.Linux.x86_64.tar.gz
-PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
+if ( !$skip ) {
+    print "Attempting update from repository...\n";
+    if ( -e "/local/mysql/.svn" ) {
+        system("svn upgrade /local/mysql >/dev/null 2>/dev/null");
+        system("svn update /local/mysql");
+    }
 
-if [ "x$1" == "xcluster" ]; then
-	touch /local/mysql/cluster
-fi
+    if ( -e "/local/mysql/.git" ) {
+        system("git pull");
+    }
+    print "Done.\n";
+}
 
-if [ -e "/local/mysql/cluster" ]; then
-	PERCONA_DL_BASE=http://www.percona.com/redir/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/$ARCH
-	PERCONA_WEB_BASE=http://www.percona.com/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/$ARCH/
-	PERCONA_FILE=`wget -q -O - $PERCONA_WEB_BASE | grep -oP "Percona-XtraDB-Cluster-[0-9]\.[0-9]\..+?\.tar\.gz" | head -n 1`
-	PERCONA_DL=$PERCONA_DL_BASE/$PERCONA_FILE
-fi
+my $arch = "x86_64";
+if ( !-e "/lib64" ) {
+    $arch = "i686";
+}
 
-PERCONA_TAR=`basename $PERCONA_DL`
-PERCONA_DIR=`basename $PERCONA_TAR .tar.gz`
+my $baseurl = "http://www.percona.com";
+my $listurl = "http://www.percona.com/redir/downloads/Percona-Server-$version/LATEST/binary/tarball";
+if ($cluster) {
+    $listurl = "http://www.percona.com/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/$arch/";
+}
 
-echo "tar = $PERCONA_TAR"
-echo "dir = $PERCONA_DIR"
+my $dlpage = get($listurl);
+my $target = "";
 
-if [ ! -d "/local/mysql/tar" ]; then
-	mkdir -p /local/mysql/tar
-fi
+while ( $dlpage =~ m|href="([^"]+)"|sgmio ) {
+    my $link = $1;
+    if ( $link =~ /\.tar\.gz/ ) {
+        $debug && print "Candidate: $link\n";
+        if ( $link =~ /$arch.tar.gz$/o ) {
+            $target = $baseurl . $link;
+            last;
+        }
+    }
+}
 
-if [ ! -e "/local/mysql/tar/$PERCONA_TAR" ]; then
-	wget -O /local/mysql/tar/$PERCONA_TAR $PERCONA_DL
-fi
+if ( !$target ) {
+    die "Cannot determine download target URL.\n";
+}
 
-if [ ! -d /local/mysql/$PERCONA_DIR ]; then
-cd /local/mysql
-gtar -xzf tar/$PERCONA_TAR
-fi
+my $fname = $target;
+$fname =~ s|.*/||g;
 
-mkdir -p /local/mysql/data
+system( "mkdir", "-p", "/local/mysql/tar" );
+my $destfile = "/local/mysql/tar/$fname";
+if ( !-e $destfile ) {
+    print "Downloading ($target)...\n";
+    my $tmpfile = $destfile . ".tmp";
+    unlink($tmpfile);
 
-mkdir -p /var/lib/mysql
-chown -R mysql:mysql /var/lib/mysql
+    my $res = system( "wget", "--tries=3", "-O", $tmpfile, $target );
+    if ( !$res ) {
+        unlink($destfile);
+        rename( $tmpfile, $destfile );
+    }
+    else {
+        die "Couldn't retrieve $target.\n";
+    }
+}
+else {
+    $debug && print "Already retrieved ($target).\n";
+}
 
-rm -f /local/mysql/server
-ln -s /local/mysql/$PERCONA_DIR /local/mysql/server
+my $dirname = $fname;
+$dirname =~ s/\.tar\.gz//;
 
-#
-if [ ! -e /local/mysql/mysql.conf ]; then
-	cp /local/mysql/mysql-base.conf /local/mysql/mysql.conf
-fi
+if ( $dirname =~ /Percona/ && -e "/local/mysql/$dirname" && $force ) {
+    system( "rm", "-rf", "/local/mysql/$dirname" );
+}
 
-# Replace systemwide client config file
-rm -f /etc/my.cnf
-cp /local/mysql/client.conf /etc/my.cnf
-chown root:root /etc/my.cnf
+if ( !-d "/local/mysql/$dirname" ) {
+    print "Extracting $fname...\n";
+    system( "tar", "-xzf", "tar/$fname" );
+    print "Done.\n";
+}
+else {
+    $debug && print "Already extracted $fname.\n";
+}
 
-rm -f /home/local/adm/rc-start/rc.*.mysql
-ln -s /local/mysql/rc.mysqld /home/local/adm/rc-start/rc.400.mysql
+system( "mkdir", "-p", "/local/mysql/data" );
+system( "mkdir", "-p", "/var/lib/mysql" );
 
-# If we're running corosync/pacemaker + cluster, don't do startup script
-if [ -e /local/mysql/cluster ]; then
-  if [ -e /etc/corosync ]; then
-    rm -f /home/local/adm/rc-start/rc.*.mysql
-  fi
-fi
+system( "chown", "-R", "mysql:mysql", "/var/lib/mysql" );
 
-rm -rf /local/mysql-db-backups/bin
-mkdir -p /local/mysql-db-backups/data /local/mysql-db-backups/latest
+unlink("/local/mysql/server");
+symlink( "/local/mysql/$dirname", "/local/mysql/server" );
 
-chown -R mysql:mysql /local/mysql
+if ( !-e "/local/mysql/mysql.conf" ) {
+    print "Installing base config...\n";
+    system( "cp", "/local/mysql/mysql-base.conf", "/local/mysql/mysql.conf" );
+}
 
-#
-# Check for backwards compatability openssl libraries
-#
-ldd /local/mysql/server/bin/mysqld | grep libcrypto.so.6 > /dev/null
-if [ $? == 0 ]; then
-	if [ -e /lib64 ]; then
+unlink("/etc/my.cnf");
+system( "cp", "/local/mysql/client.conf", "/etc/my.cnf" );
+system( "chown", "root:root", "/etc/my.cnf" );
 
-	if [ ! -e /lib64/libcrypto.so.6 ]; then
-		if [ -e /lib64/libcrypto.so.10 ]; then
-			ln -s libcrypto.so.10 /lib64/libcrypto.so.6
-		else
-			if [ -e /usr/lib64/libcrypto.so.10 ]; then
-				ln -s /usr/lib64/libcrypto.so.10 /lib64/libcrypto.so.6
-			else
-				echo "Error, need target for libcrypto.so link."
-			fi
-		fi
-	fi
-	if [ ! -e /lib64/libssl.so.6 ]; then
-		if [ -e /lib64/libssl.so.10 ]; then
-			ln -s libssl.so.10 /lib64/libssl.so.6
-		else
-			if [ -e /usr/lib64/libssl.so.10 ]; then
-				ln -s /usr/lib64/libssl.so.10 /lib64/libssl.so.6
-			else
-				echo "Error, need target for libssl.so link."
-			fi
-		fi
-	fi
-	else
+unlink( glob("/home/local/adm/rc-start/rc.*.mysql") );
+symlink( "/local/mysql/rc.mysqld", "/home/local/adm/rc-start/rc.400.mysql" );
 
-	if [ ! -e /lib/libcrypto.so.6 ]; then
-		if [ -e /lib/libcrypto.so.10 ]; then
-			ln -s libcrypto.so.10 /lib/libcrypto.so.6
-		else
-			if [ -e /usr/lib/libcrypto.so.10 ]; then
-				ln -s /usr/lib/libcrypto.so.10 /lib/libcrypto.so.6
-			else
-				echo "Error, need target for libcrypto.so link."
-			fi
-		fi
-	fi
-	if [ ! -e /lib/libssl.so.6 ]; then
-		if [ -e /lib/libssl.so.10 ]; then
-			ln -s libssl.so.10 /lib/libssl.so.6
-		else
-			if [ -e /usr/lib/libssl.so.10 ]; then
-				ln -s /usr/lib/libssl.so.10 /lib/libssl.so.6
-			else
-				echo "Error, need target for libssl.so link."
-			fi
-		fi
-	fi
+system( "rm",    "-rf", "/local/mysql-db-backups/bin" );
+system( "mkdir", "-p",  "/local/mysql-db-backups/data" );
+system( "mkdir", "-p",  "/local/mysql-db-backups/latest" );
+system( "chown", "-R",  "mysql:mysql", "/local/mysql" );
 
+open( my $ldd, "-|" ) || exec( "ldd", "/local/mysql/server/bin/mysqld" );
+my $need_libs = 0;
+while ( defined( my $line = <$ldd> ) ) {
+    if ( $line !~ /libcrypto.so.6/ ) {
+        $need_libs = 1;
+    }
+}
+close($ldd);
 
-	fi
+if ($need_libs) {
+    my @options;
+    if ( $arch eq "x86_64" ) {
+        @options = (
+            [ "/lib64/libcrypto.so.6" => "/lib64/libcrypto.so.10" ],
+            [ "/lib64/libcrypto.so.6" => "/usr/lib64/libcrypto.so.10" ],
+            [ "/lib64/libssl.so.6"    => "/lib64/libssl.so.10" ],
+            [ "/lib64/libssl.so.6"    => "/usr/lib64/libssl.so.10" ],
+        );
+    }
+    else {
+        @options = (
+            [ "/lib/libcrypto.so.6" => "/lib/libcrypto.so.10" ],
+            [ "/lib/libcrypto.so.6" => "/usr/lib/libcrypto.so.10" ],
+            [ "/lib/libssl.so.6"    => "/lib/libssl.so.10" ],
+            [ "/lib/libssl.so.6"    => "/usr/lib/libssl.so.10" ],
+        );
+    }
 
-fi
+    foreach my $orec (@options) {
+        my ( $want, $check ) = @{$orec};
+        if ( !-e $want && -e $check ) {
+            print "Linking $check to $want.\n";
+            symlink( $check, $want );
+        }
+    }
+}
 
-# Add percona toolkit
-PERCONA_TK_DL_BASE=http://www.percona.com/redir/downloads/percona-toolkit/LATEST/RPM/
-PERCONA_TK_WEB_BASE=http://www.percona.com/downloads/percona-toolkit/LATEST/RPM/
-PERCONA_TK_FILE=`wget -q -O - $PERCONA_TK_WEB_BASE | grep -oP "percona-toolkit-[0-9\.\-]+.noarch.rpm" | head -n 1`
-PERCONA_TK_DL=$PERCONA_TK_DL_BASE/$PERCONA_TK_FILE
-PERCONA_TK_NAME=`echo $PERCONA_TK_FILE | perl -pi -e s/.rpm//go`
+if ($cluster) {
+    print "Checking wsresp_sst_rsync script...\n";
 
-# Fix broken wsrep in 5.5 builds
-if [ -e /local/mysql/server/bin/wsrep_sst_rsync ]; then
-	perl -pi -e "s/^uid =/#uid =/go" /local/mysql/server/bin/wsrep_sst_rsync
-	perl -pi -e "s/^gid =/#gid =/go" /local/mysql/server/bin/wsrep_sst_rsync
-fi
+    my $fname = "/local/mysql/server/bin/wsrep_sst_rsync";
+    open( my $in, $fname );
+    my $data = join( "", <$in> );
+    close($in);
 
-# Fix missing client
-if [ ! -e /usr/bin/mysql ]; then
-	yum -y install mysql
-fi
+    my $newdata = $data;
+    $newdata =~ s|^uid =|#uid =|go;
+    $newdata =~ s|^gid =|#gid =|go;
 
-rpm --queryformat "" -q libaio || yum -y install libaio
+    if ( $newdata ne $data ) {
+        print "Fixing uid/gid in wsrep_sst_rsync...\n";
+        open( my $out, ">$fname.tmp" );
+        print $out $newdata;
+        close($out);
+        rename( $fname . ".tmp", $fname );
+    }
+}
 
-rpm --queryformat "" -q mytop || yum -y install mytop
+# Make sure we have libaio installed
+my @aio = ( glob("/usr/lib/libaio*"), glob("/usr/lib64/libaio*") );
+if ( scalar(@aio) < 1 ) {
+    print "Installing libaio...\n";
+    system( "yum", "-y", "install", "libaio" );
+}
 
-rpm --queryformat "" -q $PERCONA_TK_NAME || yum -y localinstall $PERCONA_TK_DL
+# Make sure we have mysql client installed
+if ( !-e "/usr/bin/mysql" ) {
+    system( "yum", "-y", "install", "mysql" );
+}
+if ( !-e "/usr/bin/mytop" ) {
+    system( "yum", "-y", "install", "mytop" );
+}
+
+# Now determine and install the latest percona toolkit
+
+my $baseurl = "http://www.percona.com";
+my $listurl = "http://www.percona.com/redir/downloads/percona-toolkit/LATEST/RPM/";
+
+my $dlpage = get($listurl);
+my $target = "";
+
+while ( $dlpage =~ m|href="([^"]+)"|sgmio ) {
+    my $link = $1;
+    if ( $link =~ /\.noarch\.rpm$/ ) {
+        $debug && print "Candidate: $link\n";
+        $target = $baseurl . $link;
+        last;
+    }
+}
+
+if ( !$target ) {
+    warn "Cannot determine download target URL for toolkit.\n";
+}
+
+my $rpmname = $target;
+$rpmname =~ s|.*/||g;
+$rpmname =~ s|\.rpm$||g;
+
+my $saw_exact_toolkit = 0;
+open( my $in, "-|" ) || exec( "rpm", "-q", $rpmname );
+while ( defined( my $line = <$in> ) ) {
+    if ( $line =~ /$rpmname/ ) {
+        $saw_exact_toolkit = 1;
+    }
+}
+close($in);
+
+if ( !$saw_exact_toolkit ) {
+    print "Upgrading/installing percona toolkit...\n";
+    system( "yum", "-y", "localinstall", $target );
+}
+
+print "MySQL local directory setup completed.\n";
