@@ -14,6 +14,8 @@ if ( -e "/local/mysql/cluster" ) {
     $cluster = 1;
 }
 
+my @save_argv = @ARGV;
+
 my $res = GetOptions(
     "debug+"  => \$debug,
     "cluster" => \$cluster,
@@ -29,6 +31,18 @@ if ( !$res || $help ) {
 
 chdir("/local/mysql") || die;
 
+print "Attempting update of /local/mysql installation with version $version.\n";
+if ($cluster) {
+    print "Cluster mode is enabled.\n";
+}
+print "\n";
+
+if ( $cluster && !-e "/local/mysql/cluster" ) {
+    open( my $out, ">/local/mysql/cluster" );
+    print $out "\n";
+    close($out);
+}
+
 if ( !$skip ) {
     print "Attempting update from repository...\n";
     if ( -e "/local/mysql/.svn" ) {
@@ -40,6 +54,11 @@ if ( !$skip ) {
         system("git pull");
     }
     print "Done.\n";
+
+    # re-exec to get latest changes
+    print "Re-executing self to get latest changes...\n";
+    exec( $0, "--skip", @ARGV );
+    die "failed to re-exec self.\n";
 }
 
 my $arch = "x86_64";
