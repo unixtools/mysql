@@ -7,7 +7,11 @@ PATH=/local/mysql/server/bin:/usr/bin:$PATH
 /local/mysql/setup-local-dirs $*
 
 # Handle deprecated variable names
-perl -pi -e "s/table_cache=/table_open_cache=/go" mysql.conf
+perl -pi -e "s/table_cache=/table_open_cache=/go" /local/mysql/mysql.conf
+perl -pi -e "s/key_buffer=/key_buffer_size=/go" /local/mysql/mysql.conf
+perl -pi -e "s/sort_buffer=/sort_buffer_size=/go" /local/mysql/mysql.conf
+perl -pi -e "s/join_buffer=/join_buffer_size=/go" /local/mysql/mysql.conf
+perl -pi -e "s/myisam-recover=/myisam-recover-options=/go" /local/mysql/mysql.conf
 
 /local/mysql/rc.mysqld
 
