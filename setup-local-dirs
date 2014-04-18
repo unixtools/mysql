@@ -6,7 +6,7 @@ use LWP::Simple;
 
 my $help    = 0;
 my $cluster = 0;
-my $version = "5.5";
+my $version = "5.6";
 my $skip    = 0;
 my $debug   = 0;
 my $force   = 0;
