@@ -6,7 +6,7 @@ use LWP::Simple;
 
 my $help    = 0;
 my $cluster = 0;
-my $version = "5.5";
+my $version = "5.6";
 my $skip    = 0;
 my $debug   = 0;
 my $force   = 0;
@@ -69,7 +69,7 @@ if ( !-e "/lib64" ) {
 my $baseurl = "http://www.percona.com";
 my $listurl = "http://www.percona.com/redir/downloads/Percona-Server-$version/LATEST/binary/tarball";
 if ($cluster) {
-    $listurl = "http://www.percona.com/downloads/Percona-XtraDB-Cluster/LATEST/binary/linux/$arch/";
+    $listurl = "http://www.percona.com/downloads/Percona-XtraDB-Cluster-56/LATEST/binary/linux/$arch/";
 }
 
 my $dlpage = get($listurl);
