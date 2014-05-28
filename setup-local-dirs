@@ -219,7 +219,7 @@ if ($cluster) {
     close($in);
 
     my $newdata = $data;
-    $newdata =~ s|^max_wsrep_restarts=0|max_wsrep_restarts=99999|go;
+    $newdata =~ s|^max_wsrep_restarts=\d+|max_wsrep_restarts=99999|mgo;
 
     if ( $newdata ne $data ) {
         print "Fixing max_wsrep_restarts in mysqld_safe...\n";
@@ -229,6 +229,8 @@ if ($cluster) {
         rename( $fname . ".tmp", $fname );
         chmod( 0755, $fname );
     }
+
+    print "\n";
 }
 
 # Make sure we have libaio installed
