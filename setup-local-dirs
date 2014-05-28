@@ -211,6 +211,8 @@ if ($cluster) {
         rename( $fname . ".tmp", $fname );
     }
 
+    print "Checking mysqld_safe script...\n";
+
     my $fname = "/local/mysql/server/bin/mysqld_safe";
     open( my $in, $fname );
     my $data = join( "", <$in> );
