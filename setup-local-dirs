@@ -210,6 +210,25 @@ if ($cluster) {
         close($out);
         rename( $fname . ".tmp", $fname );
     }
+
+    print "Checking mysqld_safe script...\n";
+
+    my $fname = "/local/mysql/server/bin/mysqld_safe";
+    open( my $in, $fname );
+    my $data = join( "", <$in> );
+    close($in);
+
+    my $newdata = $data;
+    $newdata =~ s|^max_wsrep_restarts=0|max_wsrep_restarts=99999|go;
+
+    if ( $newdata ne $data ) {
+        print "Fixing max_wsrep_restarts in mysqld_safe...\n";
+        open( my $out, ">$fname.tmp" );
+        print $out $newdata;
+        close($out);
+        rename( $fname . ".tmp", $fname );
+        chmod( 0755, $fname );
+    }
 }
 
 # Make sure we have libaio installed
