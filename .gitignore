@@ -4,3 +4,5 @@ mysql.conf
 server
 tar
 query.log
+queries.log
+cluster
