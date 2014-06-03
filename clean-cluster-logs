@@ -1,0 +1,3 @@
+#!/bin/sh 
+
+find /local/mysql/data -type f -name "GRA_*_*.log" -mtime +7 -exec rm -f {} \;
