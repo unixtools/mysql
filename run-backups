@@ -63,5 +63,7 @@ unlink($tmpfile);
 print "Cleaning backups dir...\n";
 system("/local/mysql/clean-backups");
 
-print "Auto checking tables...\n";
-system("mysqlcheck -A -a");
+if ( !-e "/local/mysql-db-backups/skip-analyze" ) {
+    print "Auto checking tables...\n";
+    system("mysqlcheck -A -a");
+}
