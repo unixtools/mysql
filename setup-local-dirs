@@ -45,11 +45,6 @@ if ( $cluster && !-e "/local/mysql/cluster" ) {
 
 if ( !$skip ) {
     print "Attempting update from repository...\n";
-    if ( -e "/local/mysql/.svn" ) {
-        system("svn upgrade /local/mysql >/dev/null 2>/dev/null");
-        system("svn update /local/mysql");
-    }
-
     if ( -e "/local/mysql/.git" ) {
         system("git pull");
     }
