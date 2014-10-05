@@ -28,6 +28,7 @@ if [ ! -e /local/mysql/data/mysql/host.MYD ]; then
         --defaults-extra-file=/local/mysql/mysql.conf \
         --basedir=/local/mysql/server \
         --user=mysql \
+        --tmpdir=/var/tmp \
         --datadir=/local/mysql/data 
 fi
 
@@ -35,6 +36,7 @@ mysqld_safe \
         --defaults-extra-file=/local/mysql/mysql.conf \
         --basedir=/local/mysql/server \
         --user=mysql \
+        --tmpdir=/var/tmp \
         --datadir=/local/mysql/data \
         2>&1 | /usr/bin/logger -t MYSQL &
 
