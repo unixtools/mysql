@@ -17,8 +17,18 @@ fi
 # Shut down existing instance if any
 mysqladmin shutdown
 
+# Kill if still running
+pkill -x -TERM mysqld
+sleep 2
+pkill -x -KILL mysqld
+
 # Raise file limit
 ulimit -HSn 16000
+
+clusterboot=""
+if [ -e /local/mysql/bootstrap -a -e /local/mysql/cluster ]; then
+    clusterboot="--wsrep_cluster_address=gcomm://"
+fi
 
 # Create db if not present
 if [ ! -e /local/mysql/data/mysql/host.MYD ]; then
@@ -29,7 +39,8 @@ if [ ! -e /local/mysql/data/mysql/host.MYD ]; then
         --basedir=/local/mysql/server \
         --user=mysql \
         --tmpdir=/var/tmp \
-        --datadir=/local/mysql/data 
+        --datadir=/local/mysql/data \
+        $clusterboot
 fi
 
 mysqld_safe \
@@ -38,5 +49,10 @@ mysqld_safe \
         --user=mysql \
         --tmpdir=/var/tmp \
         --datadir=/local/mysql/data \
+        $clusterboot \
         2>&1 | /usr/bin/logger -t MYSQL &
+
+if [ -e /local/mysql/bootstrap -a -e /local/mysql/cluster ]; then
+	rm -f /local/mysql/bootstrap
+fi
 
