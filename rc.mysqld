@@ -18,6 +18,7 @@ fi
 mysqladmin shutdown
 
 # Kill if still running
+# Should make this optional
 pkill -x -TERM mysqld
 sleep 2
 pkill -x -KILL mysqld
