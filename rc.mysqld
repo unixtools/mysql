@@ -19,9 +19,9 @@ mysqladmin shutdown
 
 # Kill if still running
 # Should make this optional
-pkill -x -TERM mysqld
+pkill -TERM -x mysqld
 sleep 2
-pkill -x -KILL mysqld
+pkill -KILL -x mysqld
 
 # Raise file limit
 ulimit -HSn 16000
