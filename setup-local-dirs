@@ -70,11 +70,30 @@ if ($cluster) {
 my $dlpage = get($listurl);
 my $target = "";
 
+my $sslver = `rpm -q openssl`;
+my $archssl = $arch;
+if ( $sslver =~ /-1.0.1/ )
+{
+	$archssl .= ".ssl101";
+}
+elsif ( $sslver =~ /-1.0.0/ )
+{
+	$archssl .= ".ssl100";
+}
+elsif ( $sslver =~ /-0.9./ )
+{
+	$archssl .= ".ssl098e";
+}
+
 while ( $dlpage =~ m|href="([^"]+)"|sgmio ) {
     my $link = $1;
     if ( $link =~ /\.tar\.gz/ ) {
         $debug && print "Candidate: $link\n";
-        if ( $link =~ /$arch.tar.gz$/o ) {
+        if ( $link =~ /$archssl.tar.gz$/o ) {
+            $target = $baseurl . $link;
+            last;
+        }
+        elsif ( $link =~ /$arch.tar.gz$/o ) {
             $target = $baseurl . $link;
             last;
         }
