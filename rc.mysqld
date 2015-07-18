@@ -33,7 +33,7 @@ if [ -e /local/mysql/bootstrap -a -e /local/mysql/cluster ]; then
 fi
 
 # Create db if not present
-if [ ! -e /local/mysql/data/mysql/host.MYD ]; then
+if [ ! -e /local/mysql/data/mysql/user.MYD ]; then
 	/local/mysql/setup-local-dirs
 
 	/local/mysql/server/scripts/mysql_install_db \
