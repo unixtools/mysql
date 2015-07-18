@@ -185,55 +185,50 @@ system( "mkdir", "-p",  "/local/mysql-db-backups/data" );
 system( "mkdir", "-p",  "/local/mysql-db-backups/latest" );
 system( "chown", "-R",  "mysql:mysql", "/local/mysql" );
 
+# Make sure we have libaio installed
+my @aio = ( glob("/usr/lib/libaio*"), glob("/usr/lib64/libaio*"), glob("/lib/x86_64-linux-gnu/libaio*") );
+if ( -e "/bin/rpm" ) {
+    if ( scalar(@aio) < 1 ) {
+        print "Installing libaio...\n";
+        system( "yum", "-y", "install", "libaio" );
+    }
+
+    # Make sure we have mysql client installed
+    if ( !-e "/usr/bin/mysql" ) {
+        system( "yum", "-y", "install", "mysql" );
+    }
+    if ( !-e "/usr/bin/mytop" ) {
+        system( "yum", "-y", "install", "mytop" );
+    }
+}
+elsif ( -e "/usr/bin/apt-get" ) {
+    if ( scalar(@aio) < 1 ) {
+        print "Installing libaio...\n";
+        system( "apt-get", "-y", "install", "libaio1" );
+    }
+
+    # Make sure we have mysql client installed
+    if ( !-e "/usr/bin/mysql" ) {
+        system( "apt-get", "-y", "install", "mysql-client" );
+    }
+    if ( !-e "/usr/bin/mytop" ) {
+        system( "apt-get", "-y", "install", "mytop" );
+    }
+
+}
+
 open( my $ldd, "-|" ) || exec( "ldd", "/local/mysql/server/bin/mysqld" );
 my $need_libs = 0;
 while ( defined( my $line = <$ldd> ) ) {
     if ( $line !~ /libcrypto.so./ && $line =~ /not found/ ) {
-        $need_libs = 1;
+        print "Missing required library: $line\n";
+        $need_libs++;
     }
 }
 close($ldd);
 
 if ($need_libs) {
-    die "Missing required library!\n";
-
-    my @options;
-    if ( -e "/bin/rpm" ) {
-        if ( $arch eq "x86_64" ) {
-            @options = (
-                @options,
-                [ "/lib64/libcrypto.so.6" => "/lib64/libcrypto.so.10" ],
-                [ "/lib64/libcrypto.so.6" => "/usr/lib64/libcrypto.so.10" ],
-                [ "/lib64/libssl.so.6"    => "/lib64/libssl.so.10" ],
-                [ "/lib64/libssl.so.6"    => "/usr/lib64/libssl.so.10" ],
-            );
-        }
-        else {
-            @options = (
-                @options,
-                [ "/lib/libcrypto.so.6" => "/lib/libcrypto.so.10" ],
-                [ "/lib/libcrypto.so.6" => "/usr/lib/libcrypto.so.10" ],
-                [ "/lib/libssl.so.6"    => "/lib/libssl.so.10" ],
-                [ "/lib/libssl.so.6"    => "/usr/lib/libssl.so.10" ],
-            );
-        }
-    }
-    else {
-        @options = (
-            @options,
-            [ "/lib/x86_64-linux-gnu/libssl.so.10"    => "/lib/x86_64-linux-gnu/libssl.so.1.0.0" ],
-            [ "/lib/x86_64-linux-gnu/libcrypto.so.10" => "/lib/x86_64-linux-gnu/libcrypto.so.1.0.0" ]
-        );
-
-    }
-
-    foreach my $orec (@options) {
-        my ( $want, $check ) = @{$orec};
-        if ( !-e $want && -e $check ) {
-            print "Linking $check to $want.\n";
-            symlink( $check, $want );
-        }
-    }
+    exit;
 }
 
 if ($cluster) {
@@ -276,38 +271,6 @@ if ($cluster) {
     }
 
     print "\n";
-}
-
-# Make sure we have libaio installed
-my @aio = ( glob("/usr/lib/libaio*"), glob("/usr/lib64/libaio*"), glob("/lib/x86_64-linux-gnu/libaio*") );
-if ( -e "/bin/rpm" ) {
-    if ( scalar(@aio) < 1 ) {
-        print "Installing libaio...\n";
-        system( "yum", "-y", "install", "libaio" );
-    }
-
-    # Make sure we have mysql client installed
-    if ( !-e "/usr/bin/mysql" ) {
-        system( "yum", "-y", "install", "mysql" );
-    }
-    if ( !-e "/usr/bin/mytop" ) {
-        system( "yum", "-y", "install", "mytop" );
-    }
-}
-elsif ( -e "/usr/bin/apt-get" ) {
-    if ( scalar(@aio) < 1 ) {
-        print "Installing libaio...\n";
-        system( "apt-get", "-y", "install", "libaio1" );
-    }
-
-    # Make sure we have mysql client installed
-    if ( !-e "/usr/bin/mysql" ) {
-        system( "apt-get", "-y", "install", "mysql-client" );
-    }
-    if ( !-e "/usr/bin/mytop" ) {
-        system( "apt-get", "-y", "install", "mytop" );
-    }
-
 }
 
 # Now determine and install the latest percona toolkit
