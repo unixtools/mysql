@@ -29,6 +29,18 @@ if ( !$res || $help ) {
     exit(1);
 }
 
+if ( !-e "/local/mysql" ) {
+    print "Must run from /local/mysql.\n";
+    die;
+}
+
+if ( !getpwnam("mysql") ) {
+    print "Userid 'mysql' must exist:\n\n";
+    print "  Fedora/RH/CentOS: adduser -d /local/mysql mysql\n";
+    print "  Ubuntu: adduser --quiet --gecos \"\" --disabled-password --home /local/mysql mysql\n";
+    die;
+}
+
 chdir("/local/mysql") || die;
 
 print "Attempting update of /local/mysql installation with version $version.\n";
