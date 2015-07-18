@@ -1,4 +1,5 @@
-#!/bin/sh -x
+#!/bin/bash -x
+# /bin/sh causes error with ulimit on ubuntu
 
 cd /local/mysql/server
 
@@ -28,7 +29,7 @@ ulimit -HSn 16000
 
 clusterboot=""
 if [ -e /local/mysql/bootstrap -a -e /local/mysql/cluster ]; then
-    clusterboot="--wsrep_cluster_address=gcomm://"
+	clusterboot="--wsrep_cluster_address=gcomm://"
 fi
 
 # Create db if not present
@@ -36,22 +37,28 @@ if [ ! -e /local/mysql/data/mysql/host.MYD ]; then
 	/local/mysql/setup-local-dirs
 
 	/local/mysql/server/scripts/mysql_install_db \
-        --defaults-extra-file=/local/mysql/mysql.conf \
-        --basedir=/local/mysql/server \
-        --user=mysql \
-        --tmpdir=/var/tmp \
-        --datadir=/local/mysql/data \
-        $clusterboot
+	--defaults-extra-file=/local/mysql/mysql.conf \
+	--basedir=/local/mysql/server \
+	--user=mysql \
+	--tmpdir=/var/tmp \
+	--datadir=/local/mysql/data \
+	--lc-messages=en_US \
+	--lc-messages-dir=/local/mysql/server/share \
+	--explicit_defaults_for_timestamp \
+	$clusterboot
 fi
 
 mysqld_safe \
-        --defaults-extra-file=/local/mysql/mysql.conf \
-        --basedir=/local/mysql/server \
-        --user=mysql \
-        --tmpdir=/var/tmp \
-        --datadir=/local/mysql/data \
-        $clusterboot \
-        2>&1 | /usr/bin/logger -t MYSQL &
+	--defaults-extra-file=/local/mysql/mysql.conf \
+	--basedir=/local/mysql/server \
+	--user=mysql \
+	--tmpdir=/var/tmp \
+	--datadir=/local/mysql/data \
+	--lc-messages=en_US \
+	--lc-messages-dir=/local/mysql/server/share \
+	--explicit_defaults_for_timestamp \
+	$clusterboot \
+	2>&1 | /usr/bin/logger -t MYSQL &
 
 if [ -e /local/mysql/bootstrap -a -e /local/mysql/cluster ]; then
 	rm -f /local/mysql/bootstrap

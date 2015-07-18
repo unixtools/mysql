@@ -67,23 +67,21 @@ if ($cluster) {
     $listurl = "http://www.percona.com/downloads/Percona-XtraDB-Cluster-56/LATEST/binary/tarball";
 }
 
-my $dlpage = get($listurl);
-my $target = "";
-
-my $sslver = `rpm -q openssl`;
+my $dlpage  = get($listurl);
+my $target  = "";
 my $archssl = $arch;
-if ( $sslver =~ /-1.0.1/ )
-{
-	$archssl .= ".ssl101";
+
+# https://www.percona.com/doc/percona-server/5.6/installation.html#installing-percona-server-from-a-binary-tarball
+if ( -e "/lib64/libssl.so.10" ) {
+    $archssl .= ".ssl101";
 }
-elsif ( $sslver =~ /-1.0.0/ )
-{
-	$archssl .= ".ssl100";
+elsif ( -e "/lib/x86_64-linux-gnu/libssl.so.1.0.0" ) {
+    $archssl .= ".ssl100";
 }
-elsif ( $sslver =~ /-0.9./ )
-{
-	$archssl .= ".ssl098e";
+elsif ( -e "/lib64/libssl.so.6" ) {
+    $archssl .= ".ssl098e";
 }
+print "Attempted target: $archssl\n";
 
 while ( $dlpage =~ m|href="([^"]+)"|sgmio ) {
     my $link = $1;
@@ -156,9 +154,16 @@ if ( !-e "/local/mysql/mysql.conf" ) {
     system( "cp", "/local/mysql/mysql-base.conf", "/local/mysql/mysql.conf" );
 }
 
-unlink("/etc/my.cnf");
-system( "cp", "/local/mysql/client.conf", "/etc/my.cnf" );
-system( "chown", "root:root", "/etc/my.cnf" );
+if ( -e "/etc/mysql" ) {
+    unlink("/etc/mysql/my.cnf");
+    system( "cp", "/local/mysql/client.conf", "/etc/mysql/my.cnf" );
+    system( "chown", "root:root", "/etc/mysql/my.cnf" );
+}
+else {
+    unlink("/etc/my.cnf");
+    system( "cp", "/local/mysql/client.conf", "/etc/my.cnf" );
+    system( "chown", "root:root", "/etc/my.cnf" );
+}
 
 unlink( glob("/home/local/adm/rc-start/rc.*.mysql") );
 symlink( "/local/mysql/rc.mysqld", "/home/local/adm/rc-start/rc.400.mysql" );
@@ -171,29 +176,43 @@ system( "chown", "-R",  "mysql:mysql", "/local/mysql" );
 open( my $ldd, "-|" ) || exec( "ldd", "/local/mysql/server/bin/mysqld" );
 my $need_libs = 0;
 while ( defined( my $line = <$ldd> ) ) {
-    if ( $line !~ /libcrypto.so.6/ ) {
+    if ( $line !~ /libcrypto.so./ && $line =~ /not found/ ) {
         $need_libs = 1;
     }
 }
 close($ldd);
 
 if ($need_libs) {
+    die "Missing required library!\n";
+
     my @options;
-    if ( $arch eq "x86_64" ) {
-        @options = (
-            [ "/lib64/libcrypto.so.6" => "/lib64/libcrypto.so.10" ],
-            [ "/lib64/libcrypto.so.6" => "/usr/lib64/libcrypto.so.10" ],
-            [ "/lib64/libssl.so.6"    => "/lib64/libssl.so.10" ],
-            [ "/lib64/libssl.so.6"    => "/usr/lib64/libssl.so.10" ],
-        );
+    if ( -e "/bin/rpm" ) {
+        if ( $arch eq "x86_64" ) {
+            @options = (
+                @options,
+                [ "/lib64/libcrypto.so.6" => "/lib64/libcrypto.so.10" ],
+                [ "/lib64/libcrypto.so.6" => "/usr/lib64/libcrypto.so.10" ],
+                [ "/lib64/libssl.so.6"    => "/lib64/libssl.so.10" ],
+                [ "/lib64/libssl.so.6"    => "/usr/lib64/libssl.so.10" ],
+            );
+        }
+        else {
+            @options = (
+                @options,
+                [ "/lib/libcrypto.so.6" => "/lib/libcrypto.so.10" ],
+                [ "/lib/libcrypto.so.6" => "/usr/lib/libcrypto.so.10" ],
+                [ "/lib/libssl.so.6"    => "/lib/libssl.so.10" ],
+                [ "/lib/libssl.so.6"    => "/usr/lib/libssl.so.10" ],
+            );
+        }
     }
     else {
         @options = (
-            [ "/lib/libcrypto.so.6" => "/lib/libcrypto.so.10" ],
-            [ "/lib/libcrypto.so.6" => "/usr/lib/libcrypto.so.10" ],
-            [ "/lib/libssl.so.6"    => "/lib/libssl.so.10" ],
-            [ "/lib/libssl.so.6"    => "/usr/lib/libssl.so.10" ],
+            @options,
+            [ "/lib/x86_64-linux-gnu/libssl.so.10"    => "/lib/x86_64-linux-gnu/libssl.so.1.0.0" ],
+            [ "/lib/x86_64-linux-gnu/libcrypto.so.10" => "/lib/x86_64-linux-gnu/libcrypto.so.1.0.0" ]
         );
+
     }
 
     foreach my $orec (@options) {
@@ -248,57 +267,123 @@ if ($cluster) {
 }
 
 # Make sure we have libaio installed
-my @aio = ( glob("/usr/lib/libaio*"), glob("/usr/lib64/libaio*") );
-if ( scalar(@aio) < 1 ) {
-    print "Installing libaio...\n";
-    system( "yum", "-y", "install", "libaio" );
-}
+my @aio = ( glob("/usr/lib/libaio*"), glob("/usr/lib64/libaio*"), glob("/lib/x86_64-linux-gnu/libaio*") );
+if ( -e "/bin/rpm" ) {
+    if ( scalar(@aio) < 1 ) {
+        print "Installing libaio...\n";
+        system( "yum", "-y", "install", "libaio" );
+    }
 
-# Make sure we have mysql client installed
-if ( !-e "/usr/bin/mysql" ) {
-    system( "yum", "-y", "install", "mysql" );
+    # Make sure we have mysql client installed
+    if ( !-e "/usr/bin/mysql" ) {
+        system( "yum", "-y", "install", "mysql" );
+    }
+    if ( !-e "/usr/bin/mytop" ) {
+        system( "yum", "-y", "install", "mytop" );
+    }
 }
-if ( !-e "/usr/bin/mytop" ) {
-    system( "yum", "-y", "install", "mytop" );
+elsif ( -e "/usr/bin/apt-get" ) {
+    if ( scalar(@aio) < 1 ) {
+        print "Installing libaio...\n";
+        system( "apt-get", "-y", "install", "libaio1" );
+    }
+
+    # Make sure we have mysql client installed
+    if ( !-e "/usr/bin/mysql" ) {
+        system( "apt-get", "-y", "install", "mysql-client" );
+    }
+    if ( !-e "/usr/bin/mytop" ) {
+        system( "apt-get", "-y", "install", "mytop" );
+    }
+
 }
 
 # Now determine and install the latest percona toolkit
 
-my $baseurl = "http://www.percona.com";
-my $listurl = "http://www.percona.com/redir/downloads/percona-toolkit/LATEST/RPM/";
+if ( !-e "/usr/bin/apt-get" ) {
+    my $baseurl = "http://www.percona.com";
+    my $listurl = "https://www.percona.com/downloads/percona-toolkit/LATEST/";
 
-my $dlpage = get($listurl);
-my $target = "";
+    my $dlpage = get($listurl);
+    my $target = "";
 
-while ( $dlpage =~ m|href="([^"]+)"|sgmio ) {
-    my $link = $1;
-    if ( $link =~ /\.noarch\.rpm$/ ) {
-        $debug && print "Candidate: $link\n";
-        $target = $baseurl . $link;
-        last;
+    while ( $dlpage =~ m|href="([^"]+)"|sgmio ) {
+        my $link = $1;
+        if ( $link =~ /\.noarch\.rpm$/ ) {
+            $debug && print "Candidate: $link\n";
+            $target = $baseurl . $link;
+            last;
+        }
+    }
+
+    if ( !$target ) {
+        warn "Cannot determine download target URL for toolkit.\n";
+    }
+
+    my $rpmname = $target;
+    $rpmname =~ s|.*/||g;
+    $rpmname =~ s|\.rpm$||g;
+
+    my $saw_exact_toolkit = 0;
+    open( my $in, "-|" ) || exec( "rpm", "-q", $rpmname );
+    while ( defined( my $line = <$in> ) ) {
+        if ( $line =~ /$rpmname/ ) {
+            $saw_exact_toolkit = 1;
+        }
+    }
+    close($in);
+
+    if ( !$saw_exact_toolkit ) {
+        print "Upgrading/installing percona toolkit...\n";
+        system( "yum", "-y", "localinstall", $target );
     }
 }
+else {
+    my $baseurl = "http://www.percona.com";
+    my $listurl = "https://www.percona.com/downloads/percona-toolkit/LATEST/";
 
-if ( !$target ) {
-    warn "Cannot determine download target URL for toolkit.\n";
-}
+    my $dlpage = get($listurl);
+    my $target = "";
 
-my $rpmname = $target;
-$rpmname =~ s|.*/||g;
-$rpmname =~ s|\.rpm$||g;
+    while ( $dlpage =~ m|href="([^"]+)"|sgmio ) {
+        my $link = $1;
+        if ( $link =~ /_all\.deb$/ ) {
+            $debug && print "Candidate: $link\n";
+            $target = $baseurl . $link;
+            last;
+        }
+    }
 
-my $saw_exact_toolkit = 0;
-open( my $in, "-|" ) || exec( "rpm", "-q", $rpmname );
-while ( defined( my $line = <$in> ) ) {
-    if ( $line =~ /$rpmname/ ) {
+    if ( !$target ) {
+        warn "Cannot determine download target URL for toolkit.\n";
+    }
+
+    my $debname = $target;
+    $debname =~ s|.*/||g;
+    $debname =~ s|\.rpm$||g;
+
+    my $saw_exact_toolkit = 0;
+    my $dqry_out          = `dpkg-query -l percona-toolkit`;
+    my $matchname         = $target;
+    $matchname =~ s|.*/||go;
+    $matchname =~ s|_all.deb||go;
+    $dqry_out =~ s/\s+/_/sgmo;
+    if ( $dqry_out =~ /$matchname/gmo ) {
         $saw_exact_toolkit = 1;
     }
-}
-close($in);
 
-if ( !$saw_exact_toolkit ) {
-    print "Upgrading/installing percona toolkit...\n";
-    system( "yum", "-y", "localinstall", $target );
+    if ( !$saw_exact_toolkit ) {
+        print "Upgrading/installing percona toolkit...\n";
+
+        my $tmpfile = "/tmp/percona_toolkit.deb";
+
+        unlink($tmpfile);
+        system( "wget", "-O" => $tmpfile, $target );
+
+        system( "dpkg", "-i", $tmpfile );
+
+        unlink($tmpfile);
+    }
 }
 
 print "MySQL local directory setup completed.\n";
