@@ -45,7 +45,13 @@ while ( my $db = readdir($dbdir) ) {
     next if ( !-d "$datadir/$db" );
     next if ( !-e "$datadir/$db/db.opt" && !glob("$datadir/$db/*.frm") );
 
-    my $cmd = "mysqldump --defaults-file=$tmpfile $db | gzip -v1 -c - > $base/latest/${db}.gz";
+    # Unsafe, but cuts impact
+    my $locks = "";
+    if ( $ARGV[0] eq "--skip-lock-tables" ) {
+        $locks = "--skip-lock-tables";
+    }
+
+    my $cmd = "mysqldump --defaults-file=$tmpfile $locks $db | gzip -v1 -c - > $base/latest/${db}.gz";
     print "+ $cmd\n";
     system($cmd);
 
