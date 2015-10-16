@@ -230,7 +230,7 @@ close($ldd);
 open( my $ldd, "-|" ) || exec( "ldd", "/local/mysql/server/bin/mysql" );
 my $need_readline5 = 0;
 while ( defined( my $line = <$ldd> ) ) {
-    if ( $line !~ /readline.5/ && $line =~ /not found/ ) {
+    if ( $line =~ /readline.so.5/ && $line =~ /not found/ ) {
         print "Missing required library: $line\n";
         $need_readline5++;
     }
