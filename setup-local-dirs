@@ -227,6 +227,27 @@ while ( defined( my $line = <$ldd> ) ) {
 }
 close($ldd);
 
+open( my $ldd, "-|" ) || exec( "ldd", "/local/mysql/server/bin/mysql" );
+my $need_readline5 = 0;
+while ( defined( my $line = <$ldd> ) ) {
+    if ( $line !~ /readline.5/ && $line =~ /not found/ ) {
+        print "Missing required library: $line\n";
+        $need_readline5++;
+    }
+}
+close($ldd);
+
+if ($need_readline5) {
+    if ( -e "/bin/rpm" ) {
+        print "Installing compat-readline5...\n";
+        system( "yum", "-y", "install", "compat-readline5" );
+    }
+    elsif ( -e "/usr/bin/apt-get" ) {
+        exit;
+    }
+
+}
+
 if ($need_libs) {
     exit;
 }
