@@ -217,28 +217,29 @@ elsif ( -e "/usr/bin/apt-get" ) {
 
 }
 
-open( my $ldd, "-|" ) || exec( "ldd", "/local/mysql/server/bin/mysqld" );
-my $need_libs = 0;
-while ( defined( my $line = <$ldd> ) ) {
-    if ( $line !~ /libcrypto.so./ && $line =~ /not found/ ) {
-        print "Missing required library: $line\n";
-        $need_libs++;
-    }
-}
-close($ldd);
-
-open( my $ldd, "-|" ) || exec( "ldd", "/local/mysql/server/bin/mysql" );
+open( my $ldd, "-|" ) || exec( "ldd", "/local/mysql/server/bin/mysqld", "/local/mysql/server/bin/mysql" );
+my $need_crypto    = 0;
 my $need_readline5 = 0;
+my $need_libnuma   = 0;
 while ( defined( my $line = <$ldd> ) ) {
+    if ( $line =~ /libcrypto.so./ && $line =~ /not found/ ) {
+        print "Missing required library: $line\n";
+        $need_crypto++;
+    }
     if ( $line =~ /readline.so.5/ && $line =~ /not found/ ) {
         print "Missing required library: $line\n";
         $need_readline5++;
+    }
+    if ( $line =~ /libnuma.so.1/ && $line =~ /not found/ ) {
+        print "Missing required library: $line\n";
+        $need_libnuma++;
     }
 }
 close($ldd);
 
 if ($need_readline5) {
-    if ( -e "/bin/rpm" ) {
+    print "Need to install compat-readline5\n";
+    if ( -e "/bin/rpm" || -e "/usr/bin/rpm" ) {
         print "Installing compat-readline5...\n";
         system( "yum", "-y", "install", "compat-readline5" );
     }
@@ -248,7 +249,19 @@ if ($need_readline5) {
 
 }
 
-if ($need_libs) {
+if ($need_libnuma) {
+    print "Need to install libnuma\n";
+    if ( -e "/bin/rpm" || -e "/usr/bin/rpm" ) {
+        print "Installing numactl-libs...\n";
+        system( "yum", "-y", "install", "numactl-libs" );
+    }
+    elsif ( -e "/usr/bin/apt-get" ) {
+        exit;
+    }
+
+}
+
+if ($need_crypto) {
     exit;
 }
 
