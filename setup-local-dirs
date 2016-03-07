@@ -256,9 +256,9 @@ if ($need_libnuma) {
         system( "yum", "-y", "install", "numactl-libs" );
     }
     elsif ( -e "/usr/bin/apt-get" ) {
-        exit;
+        print "Installing numactl...\n";
+        system( "yum", "-y", "install", "numactl" );
     }
-
 }
 
 if ($need_crypto) {
