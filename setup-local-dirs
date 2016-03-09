@@ -41,6 +41,19 @@ if ( !getpwnam("mysql") ) {
     die;
 }
 
+# Determine compiled in paths for system libs
+my $def_socket = "/var/lib/mysql/mysqld.sock";
+if ( -e "/usr/bin/mysql" ) {
+    open( my $in, "-|", "strings", "/usr/bin/mysql" );
+    while ( defined( my $line = <$in> ) ) {
+        if ( $line =~ m|^(/.*mysqld.sock)$|o ) {
+            $def_socket = $1;
+            print "Found default socket from /usr/bin/mysql: $def_socket\n";
+        }
+    }
+    close($in);
+}
+
 # Determine env type
 my $is_rpm = 0;
 my $is_deb = 0;
@@ -48,7 +61,7 @@ if ( ( -e "/bin/rpm" || -e "/usr/bin/rpm" ) && ( !-e "/usr/bin/apt-get" ) ) {
     $is_rpm = 0;
 }
 elsif ( -e "/usr/bin/apt-get" ) {
-	$ENV{DEBIAN_FRONTEND} = "noninteractive";
+    $ENV{DEBIAN_FRONTEND} = "noninteractive";
     $is_deb = 1;
 }
 
@@ -177,16 +190,13 @@ if ( !-e "/local/mysql/mysql.conf" ) {
     system( "cp", "/local/mysql/mysql-base.conf", "/local/mysql/mysql.conf" );
 }
 
-if ( -e "/etc/mysql" ) {
-    unlink("/etc/mysql/my.cnf");
-    system( "cp", "/local/mysql/client.conf", "/etc/mysql/my.cnf" );
-    system( "chown", "root:root", "/etc/mysql/my.cnf" );
-}
-else {
-    unlink("/etc/my.cnf");
-    system( "cp", "/local/mysql/client.conf", "/etc/my.cnf" );
-    system( "chown", "root:root", "/etc/my.cnf" );
-}
+unlink("/etc/mysql/my.cnf");
+system( "cp", "/local/mysql/client.conf", "/etc/mysql/my.cnf" );
+system( "chown", "root:root", "/etc/mysql/my.cnf" );
+
+unlink("/etc/my.cnf");
+system( "cp", "/local/mysql/client.conf", "/etc/my.cnf" );
+system( "chown", "root:root", "/etc/my.cnf" );
 
 unlink( glob("/home/local/adm/rc-start/rc.*.mysql") );
 symlink( "/local/mysql/rc.mysqld", "/home/local/adm/rc-start/rc.400.mysql" );
@@ -195,6 +205,28 @@ system( "rm",    "-rf", "/local/mysql-db-backups/bin" );
 system( "mkdir", "-p",  "/local/mysql-db-backups/data" );
 system( "mkdir", "-p",  "/local/mysql-db-backups/latest" );
 system( "chown", "-R",  "mysql:mysql", "/local/mysql" );
+
+#
+# Modify socket path in various config files
+#
+foreach my $cfile ( "/etc/mysql/my.cnf", "/etc/my.cnf", "/local/mysql/mysql.conf" ) {
+    next if ( !-e $cfile );
+    print "Updating socket path in $cfile.\n";
+
+    open( my $in, "<$cfile" );
+    my $cfg = join( "", <$in> );
+    close($in);
+
+    my $newcfg = $cfg;
+    $newcfg =~ s/^socket=.*?$/socket=$def_socket/gm;
+
+    if ( $newcfg ne $cfg ) {
+        print "Writing new version of changed file ($cfile).\n";
+        open( my $out, ">$cfile" );
+        print $out $newcfg;
+        close($out);
+    }
+}
 
 # Make sure we have libaio installed
 my @aio = ( glob("/usr/lib/libaio*"), glob("/usr/lib64/libaio*"), glob("/lib/x86_64-linux-gnu/libaio*") );
