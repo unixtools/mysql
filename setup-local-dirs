@@ -220,7 +220,7 @@ foreach my $cfile ( "/etc/mysql/my.cnf", "/etc/my.cnf", "/local/mysql/mysql.conf
     close($in);
 
     my $newcfg = $cfg;
-    $newcfg =~ s/^socket=.*?$/socket=$def_socket/gm;
+    $newcfg =~ s/^socket=.*?$/socket=$def_socket/sgm;
 
     if ( $newcfg ne $cfg ) {
         print "Writing new version of changed file ($cfile).\n";
