@@ -42,11 +42,11 @@ if ( !getpwnam("mysql") ) {
 }
 
 # Determine compiled in paths for system libs
-my $def_socket = "/var/lib/mysql/mysqld.sock";
+my $def_socket = "/var/lib/mysql/mysql.sock";
 if ( -e "/usr/bin/mysql" ) {
     open( my $in, "-|", "strings", "/usr/bin/mysql" );
     while ( defined( my $line = <$in> ) ) {
-        if ( $line =~ m|^(/.*mysqld.sock)$|o ) {
+        if ( $line =~ m|^(/.*mysqld*.sock)$|o ) {
             $def_socket = $1;
             print "Found default socket from /usr/bin/mysql: $def_socket\n";
         }
