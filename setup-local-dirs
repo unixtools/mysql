@@ -251,7 +251,7 @@ if ($need_readline5) {
 
 if ($need_libnuma) {
     print "Need to install libnuma\n";
-    if ( -e "/bin/rpm" || -e "/usr/bin/rpm" ) {
+    if ( (-e "/bin/rpm" || -e "/usr/bin/rpm") && (! -e "/usr/bin/apt-get") ) {
         print "Installing numactl-libs...\n";
         system( "yum", "-y", "install", "numactl-libs" );
     }
