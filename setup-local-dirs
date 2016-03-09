@@ -41,6 +41,17 @@ if ( !getpwnam("mysql") ) {
     die;
 }
 
+# Determine env type
+my $is_rpm = 0;
+my $is_deb = 0;
+if ( ( -e "/bin/rpm" || -e "/usr/bin/rpm" ) && ( !-e "/usr/bin/apt-get" ) ) {
+    $is_rpm = 0;
+}
+elsif ( -e "/usr/bin/apt-get" ) {
+	$ENV{DEBIAN_FRONTEND} = "noninteractive";
+    $is_deb = 1;
+}
+
 chdir("/local/mysql") || die;
 
 print "Attempting update of /local/mysql installation with version $version.\n";
@@ -187,7 +198,7 @@ system( "chown", "-R",  "mysql:mysql", "/local/mysql" );
 
 # Make sure we have libaio installed
 my @aio = ( glob("/usr/lib/libaio*"), glob("/usr/lib64/libaio*"), glob("/lib/x86_64-linux-gnu/libaio*") );
-if ( -e "/bin/rpm" ) {
+if ($is_rpm) {
     if ( scalar(@aio) < 1 ) {
         print "Installing libaio...\n";
         system( "yum", "-y", "install", "libaio" );
@@ -201,7 +212,7 @@ if ( -e "/bin/rpm" ) {
         system( "yum", "-y", "install", "mytop" );
     }
 }
-elsif ( -e "/usr/bin/apt-get" ) {
+elsif ($is_deb) {
     if ( scalar(@aio) < 1 ) {
         print "Installing libaio...\n";
         system( "apt-get", "-y", "install", "libaio1" );
@@ -239,11 +250,11 @@ close($ldd);
 
 if ($need_readline5) {
     print "Need to install compat-readline5\n";
-    if ( -e "/bin/rpm" || -e "/usr/bin/rpm" ) {
+    if ($is_rpm) {
         print "Installing compat-readline5...\n";
         system( "yum", "-y", "install", "compat-readline5" );
     }
-    elsif ( -e "/usr/bin/apt-get" ) {
+    elsif ($is_deb) {
         exit;
     }
 
@@ -251,14 +262,14 @@ if ($need_readline5) {
 
 if ($need_libnuma) {
     print "Need to install libnuma\n";
-    if ( -e "/bin/rpm" || -e "/usr/bin/rpm" ) {
+    if ($is_rpm) {
         print "Installing numactl-libs...\n";
         system( "yum", "-y", "install", "numactl-libs" );
     }
-    elsif ( -e "/usr/bin/apt-get" ) {
-        exit;
+    elsif ($is_deb) {
+        print "Installing numactl...\n";
+        system( "apt-get", "-y", "install", "numactl" );
     }
-
 }
 
 if ($need_crypto) {
@@ -309,7 +320,7 @@ if ($cluster) {
 
 # Now determine and install the latest percona toolkit
 
-if ( !-e "/usr/bin/apt-get" ) {
+if ($is_rpm) {
     my $baseurl = "http://www.percona.com";
     my $listurl = "https://www.percona.com/downloads/percona-toolkit/LATEST/";
 
@@ -347,7 +358,7 @@ if ( !-e "/usr/bin/apt-get" ) {
         system( "yum", "-y", "localinstall", $target );
     }
 }
-else {
+elsif ($is_deb) {
     my $baseurl = "http://www.percona.com";
     my $listurl = "https://www.percona.com/downloads/percona-toolkit/LATEST/";
 

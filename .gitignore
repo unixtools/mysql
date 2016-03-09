@@ -6,3 +6,6 @@ tar
 query.log
 queries.log
 cluster
+.bash_logout
+.bash_profile
+.bashrc
