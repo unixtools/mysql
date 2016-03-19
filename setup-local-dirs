@@ -58,7 +58,7 @@ if ( -e "/usr/bin/mysql" ) {
 my $is_rpm = 0;
 my $is_deb = 0;
 if ( ( -e "/bin/rpm" || -e "/usr/bin/rpm" ) && ( !-e "/usr/bin/apt-get" ) ) {
-    $is_rpm = 0;
+    $is_rpm = 1;
 }
 elsif ( -e "/usr/bin/apt-get" ) {
     $ENV{DEBIAN_FRONTEND} = "noninteractive";
@@ -297,8 +297,8 @@ if ($need_readline5) {
 if ($need_libnuma) {
     print "Need to install libnuma\n";
     if ($is_rpm) {
-        print "Installing numactl-libs...\n";
-        system( "yum", "-y", "install", "numactl-libs" );
+        print "Installing numactl...\n";
+        system( "yum", "-y", "install", "numactl" );
     }
     elsif ($is_deb) {
         print "Installing numactl...\n";
