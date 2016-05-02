@@ -24,11 +24,18 @@ close($in);
 if ( !$pw ) {
     chomp( $pw = `uuidgen` );
 }
+if ( !$pw ) {
+    chomp( $pw = `uuid` );
+}
+if ( !$pw ) {
+    die "Unable to generate uuid style pw.\n";
+}
 
 my ( $fh, $filename ) = tempfile();
 print $fh "grant super on *.* to root\@'%' identified by '$pw';\n";
 print $fh "grant super on *.* to root\@'localhost' identified by '$pw';\n";
 print $fh "grant super on *.* to root\@'127.0.0.1' identified by '$pw';\n";
+
 #print $fh "flush privileges\n";
 close($fh);
 
