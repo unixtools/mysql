@@ -170,7 +170,7 @@ if ( $dirname =~ /Percona/ && -e "/local/mysql/$dirname" && $force ) {
 
 if ( !-d "/local/mysql/$dirname" ) {
     print "Extracting $fname...\n";
-    system( "tar", "-xzf", "tar/$fname" );
+    system( "tar", "--exclude=mysql-bench", "-xzf", "tar/$fname" );
     print "Done.\n";
 }
 else {
