@@ -170,12 +170,15 @@ if ( $dirname =~ /Percona/ && -e "/local/mysql/$dirname" && $force ) {
 
 if ( !-d "/local/mysql/$dirname" ) {
     print "Extracting $fname...\n";
-    system( "tar", "--exclude=mysql-test", "-xzf", "tar/$fname" );
+    system( "tar", "--exclude=mysql-test", "--exclude=sql-bench", "-xzf", "tar/$fname" );
     print "Done.\n";
 }
 else {
     $debug && print "Already extracted $fname.\n";
 }
+
+system( "rm", "-rf", "$dirname/mysql-test" );
+system( "rm", "-rf", "$dirname/sql-bench" );
 
 system( "mkdir", "-p", "/local/mysql/data" );
 system( "mkdir", "-p", "/var/lib/mysql" );
