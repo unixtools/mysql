@@ -355,6 +355,28 @@ if ($cluster) {
     print "\n";
 }
 
+# Check mysqld_safe for bogus MY_PWD overwrite
+{
+    my $fname = "/local/mysql/server/bin/mysqld_safe";
+    open( my $in, $fname );
+    my $data = join( "", <$in> );
+    close($in);
+
+    my $repl = q(MY_PWD=`dirname $0`; MY_PWD=`dirname $MY_PWD`);
+
+    my $newdata = $data;
+    $newdata =~ s|MY_PWD='/.*?'|$repl|mgo;
+
+    if ( $newdata ne $data ) {
+        print "Fixing MY_PWD overwrite in mysqld_safe...\n";
+        open( my $out, ">$fname.tmp" );
+        print $out $newdata;
+        close($out);
+        rename( $fname . ".tmp", $fname );
+        chmod( 0755, $fname );
+    }
+}
+
 # Now determine and install the latest percona toolkit
 
 if ($is_rpm) {
