@@ -72,7 +72,7 @@ if ( $cluster ) {
 #
 # Populate system cron
 #
-umask(044);
+umask(066);
 unlink("/etc/cron.d/mysql-backups");
 open(my $out, ">/etc/cron.d/mysql-backups");
 print $out "#\n";
