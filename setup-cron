@@ -79,9 +79,11 @@ if ($cluster) {
 umask(066);
 unlink("/etc/cron.d/mysql-backups");
 open( my $out, ">/etc/cron.d/mysql-backups" );
-print $out "#\n";
-my $hr = 1 + $cluster_offset;
-print $out "0 $hr * * * root /local/mysql/run-master-backup 2>&1 | /usr/bin/logger -t mysql-master-backup\n";
-print $out "\n";
+if ($binlogs) {
+	print $out "#\n";
+	my $hr = 1 + $cluster_offset;
+    print $out "0 $hr * * * root /local/mysql/run-master-backup 2>&1 | /usr/bin/logger -t mysql-master-backup\n";
+	print $out "\n";
+}
 print $out "# Should also populate normal/during day backups here\n";
 close($out);
