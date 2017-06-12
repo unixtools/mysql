@@ -6,3 +6,4 @@ tar
 query.log
 queries.log
 cluster
+binlogs

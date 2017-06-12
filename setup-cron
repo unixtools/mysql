@@ -1,0 +1,83 @@
+#!/usr/bin/perl
+
+use strict;
+use Getopt::Long;
+use JSON;
+use Sys::Hostname;
+
+my $help    = 0;
+my $skip    = 0;
+my $debug   = 0;
+my $force   = 0;
+my $cluster = 0;
+if ( -e "/local/mysql/cluster" ) {
+    $cluster = 1;
+}
+
+my @save_argv = @ARGV;
+
+my $res = GetOptions(
+    "debug+"    => \$debug,
+    "cluster"   => \$cluster,
+    "force"     => \$force,
+    "help"      => \$help,
+    "skip"      => \$skip
+);
+if ( !$res || $help ) {
+    print "Usage: $0 [--cluster] [--skip] [--debug] [--help]\n";
+    exit(1);
+}
+
+if ( !-e "/local/mysql" ) {
+    print "Must run from /local/mysql.\n";
+    die;
+}
+
+if ( !getpwnam("mysql") ) {
+    print "Userid 'mysql' must exist:\n\n";
+    print "  Fedora/RH/CentOS: adduser -d /local/mysql mysql\n";
+    print "  Ubuntu: adduser --quiet --gecos \"\" --disabled-password --home /local/mysql mysql\n";
+    die;
+}
+
+#
+# Determine settings
+#
+my $binlogs = 0;
+open(my $in, "</local/mysql/mysql.conf");
+while ( defined(my $line = <$in>) )
+{
+	if ( $line =~ /^\s*log_bin=.*/ )
+	{
+		$binlogs++;
+	}
+}
+close($in);
+
+#
+# Determine offset if we are in a cluster
+#
+my $cluster_offset = 0;
+if ( $cluster ) {
+	my $hn = hostname;
+	if ( $hn =~ /(\d+)/o )
+	{
+		my $idx = int($1);
+		if ( $idx > 0 && $idx < 4 ) {
+			$cluster_offset = $idx;
+		}
+	}
+}
+
+#
+# Populate system cron
+#
+umask(044);
+unlink("/etc/cron.d/mysql-backups");
+open(my $out, ">/etc/cron.d/mysql-backups");
+print $out "#\n";
+my $hr = 1 + $cluster_offset;
+print $out "0 $hr * * * root /local/mysql/run-master-backup 2>&1 | /usr/bin/logger -t mysql-master-backup\n";
+print $out "\n";
+print $out "# Should also populate normal/during day backups here\n";
+close($out);
