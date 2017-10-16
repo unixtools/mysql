@@ -380,89 +380,12 @@ if ($cluster) {
 # Now determine and install the latest percona toolkit
 
 if ($is_rpm) {
-    my $baseurl = "http://www.percona.com";
-    my $listurl = "https://www.percona.com/downloads/percona-toolkit/LATEST/";
-
-    my $dlpage = get($listurl);
-    my $target = "";
-
-    while ( $dlpage =~ m|href="([^"]+)"|sgmio ) {
-        my $link = $1;
-        if ( $link =~ /\.noarch\.rpm$/ ) {
-            $debug && print "Candidate: $link\n";
-            $target = $baseurl . $link;
-            last;
-        }
-    }
-
-    if ( !$target ) {
-        warn "Cannot determine download target URL for toolkit.\n";
-    }
-
-    my $rpmname = $target;
-    $rpmname =~ s|.*/||g;
-    $rpmname =~ s|\.rpm$||g;
-
-    my $saw_exact_toolkit = 0;
-    open( my $in, "-|" ) || exec( "rpm", "-q", $rpmname );
-    while ( defined( my $line = <$in> ) ) {
-        if ( $line =~ /$rpmname/ ) {
-            $saw_exact_toolkit = 1;
-        }
-    }
-    close($in);
-
-    if ( !$saw_exact_toolkit ) {
-        print "Upgrading/installing percona toolkit...\n";
-        system( "yum", "-y", "localinstall", $target );
-    }
+    print "Upgrading/installing percona toolkit...\n";
+    system( "yum", "-y", "linstall", "percona-toolkit" );
 }
 elsif ($is_deb) {
-    my $baseurl = "http://www.percona.com";
-    my $listurl = "https://www.percona.com/downloads/percona-toolkit/LATEST/";
-
-    my $dlpage = get($listurl);
-    my $target = "";
-
-    while ( $dlpage =~ m|href="([^"]+)"|sgmio ) {
-        my $link = $1;
-        if ( $link =~ /_all\.deb$/ ) {
-            $debug && print "Candidate: $link\n";
-            $target = $baseurl . $link;
-            last;
-        }
-    }
-
-    if ( !$target ) {
-        warn "Cannot determine download target URL for toolkit.\n";
-    }
-
-    my $debname = $target;
-    $debname =~ s|.*/||g;
-    $debname =~ s|\.rpm$||g;
-
-    my $saw_exact_toolkit = 0;
-    my $dqry_out          = `dpkg-query -l percona-toolkit`;
-    my $matchname         = $target;
-    $matchname =~ s|.*/||go;
-    $matchname =~ s|_all.deb||go;
-    $dqry_out =~ s/\s+/_/sgmo;
-    if ( $dqry_out =~ /$matchname/gmo ) {
-        $saw_exact_toolkit = 1;
-    }
-
-    if ( !$saw_exact_toolkit ) {
-        print "Upgrading/installing percona toolkit...\n";
-
-        my $tmpfile = "/tmp/percona_toolkit.deb";
-
-        unlink($tmpfile);
-        system( "wget", "-O" => $tmpfile, $target );
-
-        system( "dpkg", "-i", $tmpfile );
-
-        unlink($tmpfile);
-    }
+    print "Upgrading/installing percona toolkit...\n";
+    system( "apt-get", "-y", "install", "percona-toolkit" );
 }
 
 print "MySQL local directory setup completed.\n";
