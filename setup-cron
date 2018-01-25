@@ -43,7 +43,8 @@ if ( !getpwnam("mysql") ) {
 #
 # Determine settings
 #
-my $binlogs = 0;
+my $binlogs     = 0;
+my $node_offset = 0;
 open( my $in, "</local/mysql/mysql.conf" );
 while ( defined( my $line = <$in> ) ) {
     if ( $line =~ /^\s*log_bin=(.*)/ ) {
@@ -56,22 +57,200 @@ while ( defined( my $line = <$in> ) ) {
             }
         }
     }
+    elsif ( $line =~ /^\s*server_id\s*=\s*(\d+)\s*/ ) {
+        if ( $1 >= 1 ) {
+            $node_offset = $1 - 1;
+        }
+    }
 }
 close($in);
 
 #
+# Determine backup specific settings
+#
+my $backups_conf_file = "/local/mysql/backups.conf";
+my $backups_conf;
+if ( !-e "/local/mysql/backups.conf" ) {
+
+    if ($binlogs) {
+        print "NOTE: No /local/mysql/backups.conf found, using default/example binlog config.\n";
+        $backups_conf_file = "/local/mysql/example-backups-binlogs.conf";
+    }
+    else {
+        print "NOTE: No /local/mysql/backups.conf found, using default/example simple config.\n";
+        $backups_conf_file = "/local/mysql/example-backups-simple.conf";
+    }
+}
+
+open( my $in, "<$backups_conf_file" );
+my $bconf_raw = join( "", <$in> );
+close($in);
+
+eval { $backups_conf = decode_json($bconf_raw); };
+if ( $@ || !$backups_conf ) {
+    print "Failed to process backups config from ($bconf_raw): $@\n";
+    exit;
+}
+
+#
 # Determine offset if we are in a cluster
 #
-my $cluster_offset = 0;
 if ($cluster) {
-    my $hn = hostname;
-    if ( $hn =~ /(\d+)/o ) {
-        my $idx = int($1);
-        if ( $idx > 0 && $idx < 4 ) {
-            $cluster_offset = $idx;
+    if ( !defined($node_offset) ) {
+        print "Calculating cluster offset from hostname.\n";
+        my $hn = hostname;
+        if ( $hn =~ /(\d+)/o ) {
+            my $idx = int($1);
+            if ( $idx > 0 && $idx < 4 ) {
+                $node_offset = $idx;
+            }
         }
     }
 }
+
+# This is not going to be written to handle all possibilities, but
+# will be initially coded for typical combinations. Can add more scenarios
+# if they come up
+my $cron_content = "";
+my $json         = new JSON;
+foreach my $cref ( @{ $backups_conf->{backups} } ) {
+    print "\n";
+    print "Backup Job: ", $json->pretty(0)->canonical->encode($cref), "\n";
+
+    my $interval       = $cref->{interval} || "1d";
+    my $hour_offset    = $cref->{hour_offset};
+    my $minute_offset  = $cref->{minute_offset};
+    my $cluster_offset = $cref->{cluster_offset} || "1h";
+    my $type           = $cref->{type};
+
+    my ( $interval_val, $interval_unit ) = $interval =~ /^(\d+)([dhm])$/o;
+
+    if ( !$hour_offset && $interval_unit eq "d" ) {
+        $hour_offset = "1h";
+    }
+    elsif ( !$hour_offset && $interval_unit eq "h" ) {
+        $hour_offset = "0h";
+    }
+    elsif ( !$hour_offset && $interval_unit eq "m" ) {
+        $hour_offset = "5m";
+    }
+    my ( $hour_offset_val, $hour_offset_unit ) = $hour_offset =~ /^(\d+)([dhm])$/o;
+
+    if ( !$minute_offset && $interval_unit eq "d" ) {
+        $minute_offset = "10m";
+    }
+    elsif ( !$minute_offset && $interval_unit eq "h" ) {
+        $minute_offset = "10m";
+    }
+    elsif ( !$minute_offset && $interval_unit eq "m" ) {
+        $minute_offset = "5m";
+    }
+    my ( $minute_offset_val, $minute_offset_unit ) = $minute_offset =~ /^(\d+)([dhm])$/o;
+
+    my ( $cluster_offset_val, $cluster_offset_unit ) = $cluster_offset =~ /^(\d+)([dhm])$/o;
+
+    # Typical scenarios for interval/offset/clusteroffset
+    # Daily backups: daily (1d)/hours(hour to run) + cluster_offset(hours)
+    # Few times a day: hourly (Xh)/minutes(offset in the hour)  + cluster_offset(minutes)
+    #
+    # For hourly offset, will set the minute value to a random value within the hour
+    #
+
+    if ( $interval_unit eq "d" && $interval_val != 1 ) {
+        die "For daily backups, currently only support 1d interval.\n";
+    }
+
+    my $rand_minute = int( rand(60) );
+
+    my @timespec;
+    if ( $interval_unit eq "d" && $hour_offset_unit eq "h" && $cluster_offset_unit eq "h" ) {
+        my $actual_offset = $hour_offset_val + $cluster_offset * $node_offset;
+        push( @timespec, "${rand_minute} ${actual_offset} * * *" );
+    }
+    elsif ( $interval_unit eq "h" && $hour_offset_unit eq "h" && $cluster_offset_unit eq "h" ) {
+        print "Hour based interval ($interval_val), calculating offsets within day...\n";
+        my $actual_offset = $hour_offset_val + $cluster_offset * $node_offset;
+        print "Base offset: $actual_offset\n";
+        print "Interval val: $interval_val\n";
+
+        foreach my $idx ( 0 .. ( int( 24 / $interval_val ) - 1 ) ) {
+            print "Index: $idx\n";
+
+            my $shifted_offset = $interval * $idx + $actual_offset;
+            print "Shifted offset($idx): $shifted_offset\n";
+
+            push( @timespec, $rand_minute . " " . ( $shifted_offset % 24 ) . " * * *" );
+        }
+    }
+    elsif ($interval_unit eq "h"
+        && $hour_offset_unit eq "h"
+        && $minute_offset_unit eq "m"
+        && $cluster_offset_unit eq "m" )
+    {
+
+        # This one is a bit ugly, but should cover the case of something like once/hour + 15m cluster offset
+
+        print "Hour based interval ($interval_val), calculating offsets within day...\n";
+        print "Base offset: $hour_offset_val\n";
+        print "Interval val: $interval_val\n";
+
+        foreach my $idx ( 0 .. ( int( 24 / $interval_val ) - 1 ) ) {
+            print "Index: $idx\n";
+
+            my $shifted_offset = $hour_offset_val + $interval * $idx;
+            print "Shifted offset($idx): $shifted_offset\n";
+
+            my $minute = $minute_offset + $node_offset * $cluster_offset_val;
+            print "Minute offset($idx): $minute\n";
+
+            push( @timespec, ( $minute % 60 ) . " " . ( $shifted_offset % 24 ) . " * * *" );
+        }
+    }
+    elsif ( $interval_unit eq "m" && $minute_offset_unit eq "m" && $cluster_offset_unit eq "m" ) {
+        print "Minute based interval ($interval_val), calculating offsets within hour...\n";
+        my $actual_offset = $minute_offset_val + $cluster_offset * $node_offset;
+        print "Base offset: $actual_offset\n";
+        print "Interval val: $interval_val\n";
+
+        foreach my $idx ( 0 .. ( int( 60 / $interval_val ) - 1 ) ) {
+            print "Index: $idx\n";
+
+            my $shifted_offset = $actual_offset + $interval * $idx;
+            print "Shifted offset($idx): $shifted_offset\n";
+
+            push( @timespec, int( $shifted_offset % 60 ) . " * * * *" );
+        }
+    }
+    else {
+        die "Could not calculate a timespec for the job.\n";
+    }
+    foreach my $ts (@timespec) {
+        print "Calculated timespec: $ts\n";
+    }
+
+    $cron_content .= "#\n";
+    $cron_content .= "# JOB: " . $json->pretty(0)->canonical->encode($cref) . "\n";
+    $cron_content .= "#\n";
+
+    foreach my $ts (@timespec) {
+        if ( $type eq "master" ) {
+            $cron_content
+                .= "${ts} root /local/mysql/run-master-backup 2>&1 | /usr/bin/logger -t mysql-master-backup\n";
+        }
+        elsif ( $type eq "binlogs" ) {
+            $cron_content .= "${ts} root /local/mysql/run-log-backup 2>&1 | /usr/bin/logger -t mysql-log-backup\n";
+        }
+        elsif ( $type eq "simple" ) {
+            $cron_content .= "${ts} root /local/mysql/run-backup 2>&1 | /usr/bin/logger -t mysql-backup\n";
+        }
+        else {
+            die "Unknown backup job type.\n";
+        }
+    }
+}
+print "\n";
+print "Resulting crontab:\n";
+print $cron_content, "\n";
 
 #
 # Populate system cron
@@ -79,11 +258,5 @@ if ($cluster) {
 umask(066);
 unlink("/etc/cron.d/mysql-backups");
 open( my $out, ">/etc/cron.d/mysql-backups" );
-if ($binlogs) {
-    print $out "#\n";
-    my $hr = 1 + $cluster_offset;
-    print $out "0 $hr * * * root /local/mysql/run-master-backup 2>&1 | /usr/bin/logger -t mysql-master-backup\n";
-    print $out "\n";
-}
-print $out "# Should also populate normal/during day backups here\n";
+print $out $cron_content, "\n";
 close($out);
