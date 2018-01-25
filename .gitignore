@@ -1,6 +1,7 @@
 Percona*
 data
 mysql.conf
+backups.conf
 server
 tar
 query.log
