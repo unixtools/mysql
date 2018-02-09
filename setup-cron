@@ -252,6 +252,11 @@ foreach my $cref ( @{ $backups_conf->{backups} } ) {
         }
     }
 }
+if ($cluster) {
+    $cron_content
+        .= "0 3 * * * root /local/mysql/clean-cluster-logs 2>&1 | /usr/bin/logger -t mysql-clean-cluster-logs\n";
+}
+
 print "\n";
 print "Resulting crontab:\n";
 print $cron_content, "\n";
