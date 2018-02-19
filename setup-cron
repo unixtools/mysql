@@ -241,7 +241,7 @@ foreach my $cref ( @{ $backups_conf->{backups} } ) {
             $cron_content .= "${ts} root /local/mysql/run-log-backup 2>&1 | /usr/bin/logger -t mysql-log-backup\n";
         }
         elsif ( $type eq "simple" ) {
-            $cron_content .= "${ts} root /local/mysql/run-backup 2>&1 | /usr/bin/logger -t mysql-backup\n";
+            $cron_content .= "${ts} root /local/mysql/run-backups 2>&1 | /usr/bin/logger -t mysql-backup\n";
         }
         else {
             die "Unknown backup job type.\n";
