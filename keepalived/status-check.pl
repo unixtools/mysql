@@ -42,14 +42,14 @@ if ( -e "/local/mysql/cluster" ) {
         syslog( "LOG_INFO", "checking cluster status" );
     }
 
-    my $qry = "show status like 'wsrep_local_state'";
+    my $qry = "show status like 'wsrep_ready'";
     my $cid = $db->prepare($qry);
     $cid->execute();
     my ( $label, $cstat ) = $cid->fetchrow();
     $cid->finish();
-    if ( $cstat != 4 )    # synced
+    if ( uc($cstat) ne "ON" )    # ready for queries
     {
-        syslog( "LOG_INFO", "db connection/status failed - wsrep_local_state=$cstat" );
+        syslog( "LOG_INFO", "db connection/status failed - wsrep_ready=$cstat" );
         exit(1);
     }
 
