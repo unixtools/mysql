@@ -6,10 +6,14 @@ use LWP::Simple;
 
 my $help    = 0;
 my $cluster = 0;
-my $version = "5.6";
-my $skip    = 0;
-my $debug   = 0;
-my $force   = 0;
+my $version = "10.3";
+my $subversion;
+#my $mirror = "mirrors.syringanetworks.net::mariadb";
+my $mirror = "mirror.lstn.net::mariadb";
+
+my $skip  = 0;
+my $debug = 0;
+my $force = 0;
 if ( -e "/local/mysql/cluster" ) {
     $cluster = 1;
 }
@@ -17,15 +21,18 @@ if ( -e "/local/mysql/cluster" ) {
 my @save_argv = @ARGV;
 
 my $res = GetOptions(
-    "debug+"    => \$debug,
-    "cluster"   => \$cluster,
-    "force"     => \$force,
-    "help"      => \$help,
-    "version=s" => \$version,
-    "skip"      => \$skip
+    "debug+"       => \$debug,
+    "cluster"      => \$cluster,
+    "force"        => \$force,
+    "help"         => \$help,
+    "version=s"    => \$version,
+    "subversion=s" => \$subversion,
+    "mirror=s"     => \$mirror,
+    "skip"         => \$skip
 );
 if ( !$res || $help ) {
-    print "Usage: $0 [--version=$version] [--cluster] [--skip] [--debug] [--help]\n";
+    print
+        "Usage: $0 [--version=$version] [--subversion=#] [--mirror=host::mariadb] [--cluster] [--skip] [--debug] [--help]\n";
     exit(1);
 }
 
@@ -97,74 +104,46 @@ if ( !-e "/lib64" ) {
     $arch = "i686";
 }
 
-my $baseurl = "http://www.percona.com";
-my $listurl = "http://www.percona.com/redir/downloads/Percona-Server-$version/LATEST/binary/tarball";
-if ($cluster) {
-    $listurl = "http://www.percona.com/downloads/Percona-XtraDB-Cluster-56/LATEST/binary/tarball";
-}
-
-my $dlpage  = get($listurl);
-my $target  = "";
-my $archssl = $arch;
-
-# https://www.percona.com/doc/percona-server/5.6/installation.html#installing-percona-server-from-a-binary-tarball
-if ( -e "/lib64/libssl.so.10" ) {
-    $archssl .= ".ssl101";
-}
-elsif ( -e "/lib/x86_64-linux-gnu/libssl.so.1.0.0" ) {
-    $archssl .= ".ssl100";
-}
-elsif ( -e "/lib64/libssl.so.6" ) {
-    $archssl .= ".ssl098e";
-}
-print "Attempted target: $archssl\n";
-
-while ( $dlpage =~ m|href="([^"]+)"|sgmio ) {
-    my $link = $1;
-    if ( $link =~ /\.tar\.gz/ ) {
-        $debug && print "Candidate: $link\n";
-        if ( $link =~ /$archssl.tar.gz$/o ) {
-            $target = $baseurl . $link;
-            last;
-        }
-        elsif ( $link =~ /$arch.tar.gz$/o ) {
-            $target = $baseurl . $link;
-            last;
+#
+# First determine latest version within the desired series
+#
+$mirror =~ s|/$||go;
+my $match;
+open( my $in, "-|" ) || exec( "rsync", $mirror . "/" );
+while ( defined( my $line = <$in> ) ) {
+    my $best;
+    if ( $line =~ /\s\d\d:\d\d:\d\d\s+((mariadb-${version})\.(\d+))\s*$/o ) {
+        if ( $subversion && $subversion != $3 ) { next; }
+        if ( !$best || $best < $3 ) {
+            $match = $1;
+            $best  = $3;
         }
     }
 }
-
-if ( !$target ) {
-    die "Cannot determine download target URL.\n";
+close($in);
+if ( !$match ) {
+    die "Unable to find match for version($version) subversion($subversion)";
 }
+print "Proceeding with retrieval from $match\n";
 
-my $fname = $target;
-$fname =~ s|.*/||g;
-
+#
+# Hard code use of just the glibc variant - not sure of systemd difference
+#
 system( "mkdir", "-p", "/local/mysql/tar" );
-my $destfile = "/local/mysql/tar/$fname";
-if ( !-e $destfile ) {
-    print "Downloading ($target)...\n";
-    my $tmpfile = $destfile . ".tmp";
-    unlink($tmpfile);
 
-    my $res = system( "wget", "--tries=3", "-O", $tmpfile, $target );
-    if ( !$res ) {
-        unlink($destfile);
-        rename( $tmpfile, $destfile );
-    }
-    else {
-        die "Couldn't retrieve $target.\n";
-    }
-}
-else {
-    $debug && print "Already retrieved ($target).\n";
-}
+my $variant = "glibc_214";
+
+my $fname    = "$match-linux-${variant}-${arch}.tar.gz";
+my $destfile = "/local/mysql/tar/$fname";
+my $upstream = "$mirror/$match/bintar-linux-${variant}-${arch}/$fname";
+print "Retrieving upstream: $upstream\n";
+
+system( "rsync", "-avzP", $upstream, $destfile );
 
 my $dirname = $fname;
 $dirname =~ s/\.tar\.gz//;
 
-if ( $dirname =~ /Percona/ && -e "/local/mysql/$dirname" && $force ) {
+if ( $dirname =~ /(Percona|mariadb)/ && -e "/local/mysql/$dirname" && $force ) {
     system( "rm", "-rf", "/local/mysql/$dirname" );
 }
 
@@ -369,23 +348,15 @@ if ($cluster) {
 
     if ( $newdata ne $data ) {
         print "Fixing MY_PWD overwrite in mysqld_safe...\n";
+        if ( !-e $fname . ".orig" ) {
+            system( "cp", $fname, "${fname}.orig" );
+        }
         open( my $out, ">$fname.tmp" );
         print $out $newdata;
         close($out);
         rename( $fname . ".tmp", $fname );
         chmod( 0755, $fname );
     }
-}
-
-# Now determine and install the latest percona toolkit
-
-if ($is_rpm) {
-    print "Upgrading/installing percona toolkit...\n";
-    system( "yum", "-y", "linstall", "percona-toolkit" );
-}
-elsif ($is_deb) {
-    print "Upgrading/installing percona toolkit...\n";
-    system( "apt-get", "-y", "install", "percona-toolkit" );
 }
 
 print "MySQL local directory setup completed.\n";
