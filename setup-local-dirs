@@ -8,12 +8,14 @@ my $help    = 0;
 my $cluster = 0;
 my $version = "10.3";
 my $subversion;
+
 #my $mirror = "mirrors.syringanetworks.net::mariadb";
 my $mirror = "mirror.lstn.net::mariadb";
 
 my $skip  = 0;
 my $debug = 0;
 my $force = 0;
+my $seed;
 if ( -e "/local/mysql/cluster" ) {
     $cluster = 1;
 }
@@ -27,12 +29,13 @@ my $res = GetOptions(
     "help"         => \$help,
     "version=s"    => \$version,
     "subversion=s" => \$subversion,
+    "seed=s"       => \$seed,
     "mirror=s"     => \$mirror,
     "skip"         => \$skip
 );
 if ( !$res || $help ) {
     print
-        "Usage: $0 [--version=$version] [--subversion=#] [--mirror=host::mariadb] [--cluster] [--skip] [--debug] [--help]\n";
+        "Usage: $0 [--version=$version] [--subversion=#] [--seed=host] [--mirror=host::mariadb] [--cluster] [--skip] [--debug] [--help]\n";
     exit(1);
 }
 
@@ -137,6 +140,10 @@ my $fname    = "$match-linux-${variant}-${arch}.tar.gz";
 my $destfile = "/local/mysql/tar/$fname";
 my $upstream = "$mirror/$match/bintar-linux-${variant}-${arch}/$fname";
 print "Retrieving upstream: $upstream\n";
+
+if ($seed) {
+    system( "rsync", "-avzP", "root\@${seed}:/local/mysql/tar/${fname}", $destfile );
+}
 
 system( "rsync", "-avzP", $upstream, $destfile );
 
