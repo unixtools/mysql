@@ -139,12 +139,13 @@ my $variant = "glibc_214";
 my $fname    = "$match-linux-${variant}-${arch}.tar.gz";
 my $destfile = "/local/mysql/tar/$fname";
 my $upstream = "$mirror/$match/bintar-linux-${variant}-${arch}/$fname";
-print "Retrieving upstream: $upstream\n";
 
 if ($seed) {
+    print "Syncing from seed host: $seed\n";
     system( "rsync", "-avzP", "root\@${seed}:/local/mysql/tar/${fname}", $destfile );
 }
 
+print "Syncing from upstream: $upstream\n";
 system( "rsync", "-avzP", $upstream, $destfile );
 
 my $dirname = $fname;
