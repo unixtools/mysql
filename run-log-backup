@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+use strict;
+use File::Temp qw(tempfile);
+use File::Path;
+
+if ( ! -e "/local/mysql/binlogs" ) {
+	print "No binary logs dir, exiting.\n";
+	exit(0);
+}
+
+my $base = "/local/mysql-db-backups";
+
+system("/local/mysql/clean-log-backups");
+system( "mkdir", "-p", "$base/binlogs" );
+
+# Run without --delete
+system( "rsync", "-avW", "--progress", "--stats", "/local/mysql/binlogs/", "$base/binlogs/");
+
+print "Cleaning binlogs backup dir...\n";
+system("/local/mysql/clean-log-backups");
