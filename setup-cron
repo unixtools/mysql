@@ -160,6 +160,10 @@ foreach my $cref ( @{ $backups_conf->{backups} } ) {
         die "For daily backups, currently only support 1d interval.\n";
     }
 
+    if ( !defined($interval_val) || $interval_val == 0 ) {
+        die "Interval must be positive integer.\n";
+    }
+
     my $rand_minute = int( rand(60) );
 
     my @timespec;
