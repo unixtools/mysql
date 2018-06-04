@@ -9,3 +9,6 @@ query.log
 queries.log
 cluster
 binlogs
+.bash_logout
+.bash_profile
+.bashrc
