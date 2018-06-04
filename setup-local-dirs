@@ -180,7 +180,7 @@ if ( !-e "/local/mysql/mysql.conf" ) {
     system( "cp", "/local/mysql/mysql-base.conf", "/local/mysql/mysql.conf" );
 }
 
-if ( -e "/etc/mysql" ) {
+if ( -d "/etc/mysql" ) {
     unlink("/etc/mysql/my.cnf");
     system( "cp", "/local/mysql/client.conf", "/etc/mysql/my.cnf" );
     system( "chown", "root:root", "/etc/mysql/my.cnf" );
