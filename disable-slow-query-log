@@ -1,0 +1,6 @@
+#!/bin/sh -x
+
+mysql <<EOF
+set global slow_query_log='OFF';
+set global log_queries_not_using_indexes='OFF';
+EOF
