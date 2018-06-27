@@ -7,6 +7,7 @@ server
 tar
 query.log
 queries.log
+slow-queries.log
 cluster
 binlogs
 .bash_logout
