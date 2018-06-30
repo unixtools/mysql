@@ -2,5 +2,5 @@
 
 if [ -d /local/mysql-db-backups/binlogs ]; then
 	touch /local/mysql-db-backups/binlogs
-	find /local/mysql-db-backups/binlogs/ -type f -mtime +14 -print -exec rm -f {} \;
+	find /local/mysql-db-backups/binlogs/ -type f -mtime +5 -print -exec rm -f {} \;
 fi
