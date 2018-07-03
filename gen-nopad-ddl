@@ -11,7 +11,7 @@ use Data::Dumper;
 my $csv = new Text::CSV( { sep_char => "\t", quote_char => "", eol => "\n" } );
 my $qry = q{
          select s.schema_name                 'schema',
-			    s.default_character_set_name  'schema_char',
+                s.default_character_set_name  'schema_char',
                 s.default_collation_name      'schema_collate',
                 t.table_name                  'table',
                 ccsa.character_set_name       'table_char',
