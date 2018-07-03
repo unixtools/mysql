@@ -1,0 +1,54 @@
+#!/usr/bin/perl
+# Begin-Doc
+# Name: gen-nopad-ddl
+# Type: script
+# Description: utility to generate DDL necessary to set utf8_nopad_bin collate for all tables/schemas in current database
+# End-Doc
+
+use strict;
+use Text::CSV;
+use Data::Dumper;
+my $csv = new Text::CSV( { sep_char => "\t", quote_char => "", eol => "\n" } );
+my $qry = q{
+         select s.schema_name                 'schema',
+			    s.default_character_set_name  'schema_char',
+                s.default_collation_name      'schema_collate',
+                t.table_name                  'table',
+                ccsa.character_set_name       'table_char',
+                t.table_collation             'table_collate'
+           from information_schema.schemata s
+     inner join information_schema.tables t
+             on s.schema_name = t.table_schema
+	 inner join information_schema.collation_character_set_applicability ccsa
+             on t.table_collation = ccsa.collation_name
+          where s.schema_name not in ('mysql','root','information_schema','performance_schema','test')
+			and (s.default_collation_name <> 'utf8_nopad_bin' or t.table_collation <> 'utf8_nopad_bin')
+       order by schema_name, table_name
+};
+
+my @args = ( "-e", $qry, "-B" );
+open( my $fd, "-|", "mysql", @args ) || die $!;
+
+my $touched = {};
+
+$csv->column_names( $csv->getline($fd) );
+while ( my $row = $csv->getline_hr($fd) ) {
+    if ( !$touched->{ $$row{schema} } ) {
+        $touched->{ $$row{schema} } = {};
+
+        if ( $$row{schema_collate} ne "utf8_nopad_bin" ) {
+            print "\nALTER DATABASE `$$row{schema}` CHARACTER SET utf8 COLLATE utf8_nopad_bin;\n\n";
+        }
+    }
+
+    if ( !$touched->{ $$row{schema} }->{ $$row{table} } ) {
+        $touched->{ $$row{schema} }->{ $$row{table} } = 1;
+
+        if ( $$row{table_collate} ne "utf8_nopad_bin" ) {
+            print "ALTER TABLE `$$row{schema}`.`$$row{table}` CONVERT TO CHARACTER SET utf8 COLLATE utf8_nopad_bin;\n";
+        }
+    }
+}
+
+close($fd);
+exit;
