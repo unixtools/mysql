@@ -12,4 +12,3 @@ binlog_format=ROW
 server_id=1
 expire-logs-days = 3
 max-binlog-size = 500M
-
