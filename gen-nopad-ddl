@@ -30,8 +30,14 @@ my @args = ( "-e", $qry, "-B" );
 open( my $fd, "-|", "mysql", @args ) || die $!;
 
 my $touched = {};
+my $header  = $csv->getline($fd);
+if ( !$header ) {
 
-$csv->column_names( $csv->getline($fd) );
+    # no results - exit
+    exit;
+}
+
+$csv->column_names($header);
 while ( my $row = $csv->getline_hr($fd) ) {
     if ( !$touched->{ $$row{schema} } ) {
         $touched->{ $$row{schema} } = {};
