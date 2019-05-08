@@ -24,25 +24,38 @@ fi
 
 # Create db if not present
 if [ ! -e /local/mysql/data/mysql/user.MYD ]; then
-	/local/mysql/setup-local-dirs
-
-	/local/mysql/server/scripts/mysql_install_db \
-	--defaults-extra-file=/local/mysql/mysql.conf \
-	--basedir=$(readlink -f /local/mysql/server) \
-	--user=mysql \
-	--tmpdir=/var/tmp \
-	--datadir=/local/mysql/data \
-	--lc-messages=en_US \
-	--lc-messages-dir=$(readlink -f /local/mysql/server)/share \
-	--explicit_defaults_for_timestamp \
-	$clusterboot
+    if [ -e /local/mysql/server/scripts/mysql_install_db ]; then # MariaDB
+		/local/mysql/server/scripts/mysql_install_db \
+		--defaults-extra-file=/local/mysql/mysql.conf \
+		--basedir=$(readlink -f /local/mysql/server) \
+		--user=mysql \
+		--tmpdir=/var/tmp \
+		--datadir=/local/mysql/data \
+		--lc-messages=en_US \
+		--lc-messages-dir=$(readlink -f /local/mysql/server)/share \
+		--explicit_defaults_for_timestamp \
+		$clusterboot
+	elif [ -e /local/mysql/server/bin/mysql_install_db ]; then # MySQL
+		mysqld_safe \
+		--defaults-extra-file=/local/mysql/mysql.conf \
+		--basedir=$(readlink -f /local/mysql/server) \
+		--user=mysql \
+		--datadir=/local/mysql/data \
+		--lc-messages=en_US \
+		--lc-messages-dir=$(readlink -f /local/mysql/server)/share \
+		--explicit_defaults_for_timestamp \
+		--initialize-insecure \
+		$clusterboot
+    else 
+       echo "Must run setup-local-dirs first!"
+       exit 1
+	fi
 fi
 
 mysqld_safe \
 	--defaults-extra-file=/local/mysql/mysql.conf \
 	--basedir=$(readlink -f /local/mysql/server) \
 	--user=mysql \
-	--tmpdir=/var/tmp \
 	--datadir=/local/mysql/data \
 	--lc-messages=en_US \
 	--lc-messages-dir=$(readlink -f /local/mysql/server)/share \

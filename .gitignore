@@ -1,5 +1,6 @@
 Percona*
 mariadb*
+mysql*
 data
 mysql.conf
 backups.conf
