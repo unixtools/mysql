@@ -6,11 +6,11 @@ use LWP::Simple;
 
 my $help    = 0;
 my $cluster = 0;
-my $version = "10.3";
 my $subversion;
 
-#my $mirror = "mirrors.syringanetworks.net::mariadb";
-my $mirror = "mirror.lstn.net::mariadb";
+my $mirror;
+my $version;
+my $flavor = "mariadb";
 
 my $skip  = 0;
 my $debug = 0;
@@ -21,12 +21,14 @@ if ( -e "/local/mysql/cluster" ) {
 }
 
 my @save_argv = @ARGV;
+print "$0: launched with ", join(" ", @ARGV), "\n";
 
 my $res = GetOptions(
     "debug+"       => \$debug,
     "cluster"      => \$cluster,
     "force"        => \$force,
     "help"         => \$help,
+    "flavor=s"     => \$flavor,
     "version=s"    => \$version,
     "subversion=s" => \$subversion,
     "seed=s"       => \$seed,
@@ -35,8 +37,30 @@ my $res = GetOptions(
 );
 if ( !$res || $help ) {
     print
-        "Usage: $0 [--version=$version] [--subversion=#] [--seed=host] [--mirror=host::mariadb] [--cluster] [--skip] [--debug] [--help]\n";
+        "Usage: $0 [--flavor=mariadb|oracle] [--version=10.3|5.7|...] [--subversion=#] [--seed=host] [--mirror=host::mariadb] [--cluster] [--skip] [--debug] [--help]\n";
     exit(1);
+}
+
+if ( !$mirror ) {
+    if ( $flavor eq "mariadb" ) {
+
+        # Alternative mirror: mirrors.syringanetworks.net::mariadb
+        $mirror = "mirror.lstn.net::mariadb";
+    }
+    elsif ( $flavor eq "oracle" ) {
+
+        # Alternative mirror: rsync://rsync.mirrorservice.org/ftp.mysql.com/
+        $mirror = "mysql.he.net::mysql";
+    }
+}
+
+if ( !$version ) {
+    if ( $flavor eq "mariadb" ) {
+        $version = "10.3";
+    }
+    else {
+        $version = "5.7";
+    }
 }
 
 if ( !-e "/local/mysql" ) {
@@ -98,7 +122,9 @@ if ( !$skip ) {
 
     # re-exec to get latest changes
     print "Re-executing self to get latest changes...\n";
-    exec( $0, "--skip", @save_argv );
+	my @cmd = ($0, "--skip", @save_argv );
+    print "Command: ", join( " ", @cmd), "\n";
+    exec(@cmd);
     die "failed to re-exec self.\n";
 }
 
@@ -112,33 +138,57 @@ if ( !-e "/lib64" ) {
 #
 $mirror =~ s|/$||go;
 my $match;
-open( my $in, "-|" ) || exec( "rsync", $mirror . "/" );
-while ( defined( my $line = <$in> ) ) {
-    my $best;
-    if ( $line =~ /\s\d\d:\d\d:\d\d\s+((mariadb-${version})\.(\d+))\s*$/o ) {
-        if ( $subversion && $subversion != $3 ) { next; }
-        if ( !$best || $best < $3 ) {
-            $match = $1;
-            $best  = $3;
+if ( $flavor eq "mariadb" ) {
+    open( my $in, "-|" ) || exec( "rsync", $mirror . "/" );
+    while ( defined( my $line = <$in> ) ) {
+        my $best;
+        if ( $line =~ /\s\d\d:\d\d:\d\d\s+((mariadb-${version})\.(\d+))\s*$/o ) {
+            if ( $subversion && $subversion != $3 ) { next; }
+            if ( !$best || $best < $3 ) {
+                $match = $1;
+                $best  = $3;
+            }
         }
     }
+    close($in);
 }
-close($in);
+elsif ( $flavor eq "oracle" ) {
+    open( my $in, "-|" ) || exec( "rsync", $mirror . "/Downloads/MySQL-${version}/" );
+    while ( defined( my $line = <$in> ) ) {
+        my $best;
+
+        # mysql-5.7.26-linux-glibc2.12-x86_64.tar.gz
+        if ( $line =~ /\s\d\d:\d\d:\d\d\s+((mysql-${version})\.(\d+)-linux.*x86_64.*.tar.gz)\s*$/o ) {
+            if ( $subversion && $subversion != $3 ) { next; }
+            if ( !$best || $best < $3 ) {
+                $match = $1;
+                $best  = $3;
+            }
+        }
+    }
+    close($in);
+
+}
 if ( !$match ) {
     die "Unable to find match for version($version) subversion($subversion)";
 }
 print "Proceeding with retrieval from $match\n";
 
-#
-# Hard code use of just the glibc variant - not sure of systemd difference
-#
 system( "mkdir", "-p", "/local/mysql/tar" );
 
-my $variant = "glibc_214";
+my $fname;
+my $upstream;
 
-my $fname    = "$match-linux-${variant}-${arch}.tar.gz";
+if ( $flavor eq "mariadb" ) {
+    my $variant = "glibc_214";
+    $fname    = "$match-linux-${variant}-${arch}.tar.gz";
+    $upstream = "$mirror/$match/bintar-linux-${variant}-${arch}/$fname";
+}
+elsif ( $flavor eq "oracle" ) {
+    $fname    = $match;
+    $upstream = "$mirror/Downloads/MySQL-${version}/$match";
+}
 my $destfile = "/local/mysql/tar/$fname";
-my $upstream = "$mirror/$match/bintar-linux-${variant}-${arch}/$fname";
 
 if ($seed) {
     print "Syncing from seed host: $seed\n";
@@ -151,10 +201,11 @@ system( "rsync", "-avzP", $upstream, $destfile );
 my $dirname = $fname;
 $dirname =~ s/\.tar\.gz//;
 
-if ( $dirname =~ /(Percona|mariadb)/ && -e "/local/mysql/$dirname" && $force ) {
+if ( $dirname =~ /(mysql|Percona|mariadb)/ && -e "/local/mysql/$dirname" && $force ) {
     system( "rm", "-rf", "/local/mysql/$dirname" );
 }
 
+print "Checking for existence of $dirname:\n";
 if ( !-d "/local/mysql/$dirname" ) {
     print "Extracting $fname...\n";
     system( "tar", "--exclude=mysql-test", "--exclude=sql-bench", "-xzf", "tar/$fname" );
