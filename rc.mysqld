@@ -17,6 +17,10 @@ pkill -KILL -x mysqld
 # Raise file limit
 ulimit -HSn 16000
 
+# Make dir for pid file
+mkdir -p /var/run/mysqld
+chown -R mysql:mysql /var/run/mysqld
+
 clusterboot=""
 if [ -e /local/mysql/bootstrap -a -e /local/mysql/cluster ]; then
 	clusterboot="--wsrep_cluster_address=gcomm://"
