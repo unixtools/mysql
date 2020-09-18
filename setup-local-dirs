@@ -21,7 +21,7 @@ if ( -e "/local/mysql/cluster" ) {
 }
 
 my @save_argv = @ARGV;
-print "$0: launched with ", join(" ", @ARGV), "\n";
+print "$0: launched with ", join( " ", @ARGV ), "\n";
 
 my $res = GetOptions(
     "debug+"       => \$debug,
@@ -37,7 +37,7 @@ my $res = GetOptions(
 );
 if ( !$res || $help ) {
     print
-        "Usage: $0 [--flavor=mariadb|oracle] [--version=10.3|5.7|...] [--subversion=#] [--seed=host] [--mirror=host::mariadb] [--cluster] [--skip] [--debug] [--help]\n";
+        "Usage: $0 [--flavor=mariadb|oracle] [--version=10.5|10.3|5.7|...] [--subversion=#] [--seed=host] [--mirror=host::mariadb] [--cluster] [--skip] [--debug] [--help]\n";
     exit(1);
 }
 
@@ -56,7 +56,7 @@ if ( !$mirror ) {
 
 if ( !$version ) {
     if ( $flavor eq "mariadb" ) {
-        $version = "10.3";
+        $version = "10.5";
     }
     else {
         $version = "5.7";
@@ -122,8 +122,8 @@ if ( !$skip ) {
 
     # re-exec to get latest changes
     print "Re-executing self to get latest changes...\n";
-	my @cmd = ($0, "--skip", @save_argv );
-    print "Command: ", join( " ", @cmd), "\n";
+    my @cmd = ( $0, "--skip", @save_argv );
+    print "Command: ", join( " ", @cmd ), "\n";
     exec(@cmd);
     die "failed to re-exec self.\n";
 }
@@ -180,9 +180,12 @@ my $fname;
 my $upstream;
 
 if ( $flavor eq "mariadb" ) {
-    my $variant = "glibc_214";
-    $fname    = "$match-linux-${variant}-${arch}.tar.gz";
-    $upstream = "$mirror/$match/bintar-linux-${variant}-${arch}/$fname";
+    my $variant;
+    if ( $version eq "10.3" ) {
+        $variant = "-glibc_214";
+    }
+    $fname    = "$match-linux${variant}-${arch}.tar.gz";
+    $upstream = "$mirror/$match/bintar-linux${variant}-${arch}/$fname";
 }
 elsif ( $flavor eq "oracle" ) {
     $fname    = $match;
