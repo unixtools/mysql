@@ -12,6 +12,11 @@ my $mirror;
 my $version;
 my $flavor = "mariadb";
 
+my $tgt = readlink("/local/mysql/server");
+if ( $tgt =~ /mysql-/ ) {
+    $flavor = "oracle";
+}
+
 my $skip  = 0;
 my $debug = 0;
 my $force = 0;
@@ -37,7 +42,7 @@ my $res = GetOptions(
 );
 if ( !$res || $help ) {
     print
-        "Usage: $0 [--flavor=mariadb|oracle] [--version=10.5|10.3|5.7|...] [--subversion=#] [--seed=host] [--mirror=host::mariadb] [--cluster] [--skip] [--debug] [--help]\n";
+        "Usage: $0 [--flavor=mariadb|oracle] [--version=10.5|5.7|...] [--subversion=#] [--seed=host] [--mirror=host::mariadb] [--cluster] [--skip] [--debug] [--help]\n";
     exit(1);
 }
 
@@ -45,18 +50,28 @@ if ( !$mirror ) {
     if ( $flavor eq "mariadb" ) {
 
         # Alternative mirror: mirrors.syringanetworks.net::mariadb
-        $mirror = "mirror.lstn.net::mariadb";
+        #$mirror = "mirror.lstn.net::mariadb";
+        $mirror = "mirrors.syringanetworks.net::mariadb";
     }
     elsif ( $flavor eq "oracle" ) {
 
-        # Alternative mirror: rsync://rsync.mirrorservice.org/ftp.mysql.com/
-        $mirror = "mysql.he.net::mysql";
+        #$mirror = "mysql.he.net::mysql";
+        $mirror = "rsync.mirrorservice.org::ftp.mysql.com";
     }
 }
 
 if ( !$version ) {
     if ( $flavor eq "mariadb" ) {
-        $version = "10.5";
+        if ($cluster) {
+            my $lsb = `cat /etc/lsb-release`;
+            $version = "10.5";
+            if ( $lsb =~ /focal/gmo ) {
+                $version = "10.5";
+            }
+        }
+        else {
+            $version = "10.5";
+        }
     }
     else {
         $version = "5.7";
@@ -111,6 +126,22 @@ if ( $cluster && !-e "/local/mysql/cluster" ) {
     open( my $out, ">/local/mysql/cluster" );
     print $out "\n";
     close($out);
+}
+
+# Deal with galera dependency on a lib that is no longer included
+# Extract into libs-compat dir from an older ubuntu18 deb
+my $lsb = `cat /etc/lsb-release`;
+if ( $cluster && $lsb =~ /focal/sgmo && !-e "/local/mysql/libs-compat/libssl.so.1.0.0" ) {
+	system("mkdir", "-p", "/local/mysql/libs-compat");
+
+	chdir("/local/mysql/libs-compat") || die;
+	system("wget", "-O" => "libssl.deb", "http://archive.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.0.0_1.0.2n-1ubuntu5.7_amd64.deb");
+	system("ar", "x", "libssl.deb", "data.tar.xz");
+
+	system("tar", "--strip-components" => 4, "-xJvf" => "data.tar.xz", "./usr/lib/x86_64-linux-gnu/libcrypto.so.1.0.0", "./usr/lib/x86_64-linux-gnu/libssl.so.1.0.0");
+	unlink("data.tar.xz");
+	unlink("libssl.deb");
+	chdir("/local/mysql") || die;
 }
 
 if ( !$skip ) {
@@ -181,10 +212,7 @@ my $upstream;
 
 if ( $flavor eq "mariadb" ) {
     my $variant;
-    if ( $version eq "10.3" ) {
-        $variant = "-glibc_214";
-    }
-    elsif ( $version eq "10.6" || $version eq "10.7" ) {
+    if ( $cluster && $version =~ "10.[5-9]" ) {
         $variant = "-systemd";
     }
     $fname    = "$match-linux${variant}-${arch}.tar.gz";
@@ -297,6 +325,11 @@ elsif ($is_deb) {
     if ( scalar(@aio) < 1 ) {
         print "Installing libaio...\n";
         system( "apt-get", "-y", "install", "libaio1" );
+    }
+
+    # Needed for client tools
+    if ( !-e "/lib/x86_64-linux-gnu/libncurses.so.5" ) {
+        system( "apt-get", "-y", "install", "libncurses5" );
     }
 
     # Make sure we have mysql client installed
