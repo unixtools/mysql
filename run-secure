@@ -28,7 +28,7 @@ if ( !$pw ) {
     chomp( $pw = `uuid` );
 }
 if ( !$pw ) {
-    chomp( $pw = `python3 -c "import uuid; print(str(uuid.uuid1()))"` );
+    chomp( $pw = `python3 -c "import uuid; print(str(uuid.uuid4()))"` );
 }
 if ( !$pw ) {
     die "Unable to generate uuid style pw.\n";
