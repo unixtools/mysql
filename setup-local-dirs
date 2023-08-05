@@ -121,8 +121,21 @@ if ( $cluster && !-e "/local/mysql/cluster" ) {
 
 # Deal with galera dependency on a lib that is no longer included
 # Extract into libs-compat dir from an older ubuntu18 deb
-my $lsb = `cat /etc/lsb-release`;
-if ( $cluster && $lsb =~ /focal/sgmo && !-e "/local/mysql/libs-compat/libssl.so.1.0.0" ) {
+my $os;
+if ( -e "/etc/lsb-release" ) {
+    open( my $in, "</etc/lsb-release" );
+    $os = join( "", <$in> );
+    close($in);
+}
+elsif ( -e "/etc/os-release" ) {
+    open( my $in, "</etc/os-release" );
+    $os = join( "", <$in> );
+    close($in);
+}
+if (   $cluster
+    && $os =~ /focal/sgmo
+    && !-e "/local/mysql/libs-compat/libssl.so.1.0.0" )
+{
     system( "mkdir", "-p", "/local/mysql/libs-compat" );
 
     chdir("/local/mysql/libs-compat") || die;
@@ -137,7 +150,8 @@ if ( $cluster && $lsb =~ /focal/sgmo && !-e "/local/mysql/libs-compat/libssl.so.
         "tar",
         "--strip-components" => 4,
         "-xJvf"              => "data.tar.xz",
-        "./usr/lib/x86_64-linux-gnu/libcrypto.so.1.0.0", "./usr/lib/x86_64-linux-gnu/libssl.so.1.0.0"
+        "./usr/lib/x86_64-linux-gnu/libcrypto.so.1.0.0",
+        "./usr/lib/x86_64-linux-gnu/libssl.so.1.0.0"
     );
     unlink("data.tar.xz");
     unlink("libssl.deb");
@@ -184,7 +198,8 @@ if ( $flavor eq "mariadb" ) {
     close($in);
 }
 elsif ( $flavor eq "oracle" ) {
-    open( my $in, "-|" ) || exec( "rsync", $mirror . "/Downloads/MySQL-${version}/" );
+    open( my $in, "-|" )
+        || exec( "rsync", $mirror . "/Downloads/MySQL-${version}/" );
     while ( defined( my $line = <$in> ) ) {
         my $best;
 
@@ -239,7 +254,10 @@ system( "rsync", "-avzP", $upstream, $destfile );
 my $dirname = $fname;
 $dirname =~ s/\.tar\.gz//;
 
-if ( $dirname =~ /(mysql|Percona|mariadb)/ && -e "/local/mysql/$dirname" && $force ) {
+if (   $dirname =~ /(mysql|Percona|mariadb)/
+    && -e "/local/mysql/$dirname"
+    && $force )
+{
     system( "rm", "-rf", "/local/mysql/$dirname" );
 }
 
@@ -271,13 +289,13 @@ if ( !-e "/local/mysql/mysql.conf" ) {
 
 if ( -d "/etc/mysql" ) {
     unlink("/etc/mysql/my.cnf");
-    system( "cp", "/local/mysql/client.conf", "/etc/mysql/my.cnf" );
-    system( "chown", "root:root", "/etc/mysql/my.cnf" );
+    system( "cp",    "/local/mysql/client.conf", "/etc/mysql/my.cnf" );
+    system( "chown", "root:root",                "/etc/mysql/my.cnf" );
 }
 
 unlink("/etc/my.cnf");
-system( "cp", "/local/mysql/client.conf", "/etc/my.cnf" );
-system( "chown", "root:root", "/etc/my.cnf" );
+system( "cp",    "/local/mysql/client.conf", "/etc/my.cnf" );
+system( "chown", "root:root",                "/etc/my.cnf" );
 
 unlink( glob("/home/local/adm/rc-start/rc.*.mysql") );
 symlink( "/local/mysql/rc.mysqld", "/home/local/adm/rc-start/rc.400.mysql" );
@@ -321,7 +339,7 @@ if ($is_rpm) {
     if ( !-e "/usr/bin/mysql" ) {
         system( "yum", "-y", "install", "mysql" );
     }
-    if ( !-e "/usr/bin/mytop" ) {
+    if ( $os =~ /focal/ && !-e "/usr/bin/mytop" ) {
         system( "yum", "-y", "install", "mytop" );
     }
 }
@@ -338,10 +356,15 @@ elsif ($is_deb) {
 
     # Make sure we have mysql client installed
     if ( !-e "/usr/bin/mysql" ) {
-        system( "apt-get", "-y", "install", "mysql-client" );
+        if ( $os =~ /bookworm/ ) {
+            system( "apt-get", "-y", "install", "mysql-client" );
+        }
+        else {
+            system( "apt-get", "-y", "install", "mysql-client" );
+        }
     }
     if ( !-e "/usr/bin/mytop" ) {
-        system( "apt-get", "-y", "install", "mytop" );
+        $os =~ /focal/ && system( "apt-get", "-y", "install", "mytop" );
     }
 
 }
