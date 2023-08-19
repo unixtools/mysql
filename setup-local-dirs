@@ -358,7 +358,7 @@ elsif ($is_deb) {
     # Make sure we have mysql client installed
     if ( !-e "/usr/bin/mysql" ) {
         if ( $os =~ /bookworm/ ) {
-            system( "apt-get", "-y", "install", "mysql-client" );
+            system( "apt-get", "-y", "install", "mariadb-client" );
         }
         else {
             system( "apt-get", "-y", "install", "mysql-client" );
