@@ -365,6 +365,7 @@ elsif ($is_deb) {
         }
     }
     if ( !-e "/usr/bin/mytop" ) {
+	# With debian, this is part of mariadb-client
         $os =~ /focal/ && system( "apt-get", "-y", "install", "mytop" );
     }
 
