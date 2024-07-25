@@ -7,7 +7,7 @@ PATH=/local/mysql/server/bin:$PATH
 
 # Shut down existing instance if any
 if [ -e "/local/mysql/server/bin/mariadb-admin" ]; then
-	mariadb-admin --skip-tls-version shutdown
+	mariadb-admin --disable-ssl-verify-server-cert shutdown
 else
 	mysqladmin shutdown
 fi
