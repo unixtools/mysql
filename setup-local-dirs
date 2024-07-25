@@ -62,7 +62,7 @@ if ( !$mirror ) {
 
 if ( !$version ) {
     if ( $flavor eq "mariadb" ) {
-        $version = "10.11";
+        $version = "11.4";
     }
     else {
         $version = "5.7";
