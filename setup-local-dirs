@@ -39,11 +39,7 @@ if ( !$res || $help ) {
 }
 
 if ( !$mirror ) {
-
-    # Alternative mirror: mirrors.syringanetworks.net::mariadb
     $mirror = "mirror.lstn.net::mariadb";
-
-    #$mirror = "mirrors.syringanetworks.net::mariadb";
 }
 
 if ( !$version ) {
@@ -177,6 +173,7 @@ while ( defined( my $line = <$in> ) ) {
     }
 }
 close($in);
+
 if ( !$match ) {
     die "Unable to find match for version($version) subversion($subversion)";
 }
@@ -194,8 +191,14 @@ if ( $cluster && $version =~ /10.[5-9]/ ) {
 elsif ( $version =~ /10.[6-9]/ ) {
     $variant = "-systemd";
 }
-elsif ( $version =~ /11\.4/ ) {
+elsif ( $version =~ /10\.11/ ) {
     $variant = "-systemd";
+}
+elsif ( $version =~ /11\./ ) {
+    $variant = "-systemd";
+}
+else {
+    die "Unhandled variant.\n";
 }
 
 $fname    = "$match-linux${variant}-${arch}.tar.gz";
