@@ -217,10 +217,7 @@ system( "rsync", "-avzP", $upstream, $destfile );
 my $dirname = $fname;
 $dirname =~ s/\.tar\.gz//;
 
-if (   $dirname =~ /(mysql|Percona|mariadb)/
-    && -e "/local/mysql/$dirname"
-    && $force )
-{
+if ( $dirname =~ /(mysql|Percona|mariadb)/ && -e "/local/mysql/$dirname" && $force ) {
     system( "rm", "-rf", "/local/mysql/$dirname" );
 }
 
